@@ -1,11 +1,10 @@
 import React from "react";
 import "./App.css";
+import { interpolate, monthsRange, addMonths, monthStartAndEnd, formatDate } from "./utils.js";
 import dc from "dc";
 
 
 const UID = "77239038"
-const ARCHIVE_URL = "https://nyt-games-prd.appspot.com/svc/crosswords/v3/{uid}/puzzles.json?publish_type=daily&sort_order=asc&sort_by=print_date&date_start={start_date}&date_end={end_date}"
-const GAME_URL = "https://nyt-games-prd.appspot.com/svc/crosswords/v6/game/{gid}.json"
 
 class App extends React.Component {
     constructor() {
@@ -23,7 +22,7 @@ class App extends React.Component {
                 <UserForm onSubmit={this.onInputUserDetails}/>
                 {
                     this.state.userId
-                        ?  <DataContent userId={this.state.userId} userCookie={this.state.userCookie} />
+                        ?  <DataContent userId={this.state.userId} userCookie={this.state.userCookie} key={this.state.userId} />
                         : null
                 }
             </div>
@@ -40,7 +39,7 @@ class UserForm extends React.Component {
         super(props);
 
         this.state = {
-            userId: "",
+            userId: UID,
             userCookie: "",
         };
 
@@ -59,8 +58,7 @@ class UserForm extends React.Component {
                 <div className="UserForm-header">
                     User Information
                 </div>
-                <form className="UserForm-form" onSubmit={this.handleSubmit}>
-                    <div className="UserForm-fields">
+                <form className="UserForm-form" onSubmit={this.handleSubmit}> <div className="UserForm-fields">
                         <div id="UserForm-userId" className="UserForm-field">
                             <label className="UserForm-label">User ID</label>
                             <input className="UserForm-fieldInput" id="UserForm-userIdInput" type="text" value={this.state.userId} onChange={this.setUserId} />
@@ -91,7 +89,7 @@ class UserForm extends React.Component {
 
     handleKeyPress(event) {
         // Suppress Enter
-        if (event.charCode == 13) {
+        if (event.charCode === 13) {
             this.submit();
             event.preventDefault();
         }
@@ -118,21 +116,39 @@ class DataContent extends React.Component {
 
     render() {
         return (
-            <DataLoader render={this.renderVisualization} />
+            <DataLoader userId={this.props.userId} render={this.renderVisualization} />
         );
     }
 
     renderVisualization(data) {
-        return "DATA";
+        return <DataVisualizer data={data} />;
     }
 }
 
 class DataLoader extends React.Component {
+
+    static ARCHIVE_URL = "https://nyt-games-prd.appspot.com/svc/crosswords/v3/{uid}/puzzles.json?publish_type=daily&sort_order=asc&sort_by=print_date&date_start={start_date}&date_end={end_date}"
+    static GAME_URL = "https://nyt-games-prd.appspot.com/svc/crosswords/v6/game/{gid}.json"
+
     constructor() {
         super();
+        this.data = {};
         this.state = {
-            loaded: false
+            loaded: false,
+            numPendingRequests: 0,
         };
+    }
+
+    componentDidUpdate(prevProps, prevState) {
+        if (prevState.numPendingRequests > 0 && this.state.numPendingRequests === 0) {
+            this.setState({
+                loaded: true,
+            });
+        }
+    }
+
+    componentDidMount() {
+        this.fetch();
     }
 
     render() {
@@ -140,14 +156,53 @@ class DataLoader extends React.Component {
             return "Loading foo";
         }
 
-        return this.props.render({
-            data: null,
+        return this.props.render(this.data);
+    }
+
+    fetch() {
+        const now = new Date();
+        const [currentYear, currentMonth] = [now.getFullYear(), now.getMonth()];
+        const [startYear, startMonth] = addMonths(currentYear, currentMonth, -12);
+        const months = monthsRange(startYear, startMonth, currentYear, currentMonth);
+        console.log(months);
+        months.forEach(yearAndMonth => {
+            const [year, month] = yearAndMonth;
+            this.fetchMonth(year, month);
+        });
+        this.setState({
+            numPendingRequests: months.length,
         });
     }
+
+    fetchMonth(year, month) {
+        const [monthStart, monthEnd] = monthStartAndEnd(year, month);
+        window.fetch(
+            interpolate(DataLoader.ARCHIVE_URL, {
+                uid: this.props.userId,
+                start_date: formatDate(monthStart),
+                end_date: formatDate(monthEnd),
+            })
+        )
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+            data.results.forEach(puzzleData => {
+                this.data[puzzleData.print_date] = puzzleData;
+            });
+            this.setState(state => {
+                return {
+                    numPendingRequests: state.numPendingRequests - 1,
+                };
+            });
+        });
+    }
+
 }
 
 class DataVisualizer extends React.Component {
-
+    render() {
+        return JSON.stringify(this.props.data, null, 4);
+    }
 }
 
 export default App;
