@@ -51,7 +51,8 @@ class Puzzle {
     }
 
     solveTime() {
-        if (this.solved()) {
+        // Sanitize NYT data problems
+        if (this.solved() && this.data.calcs.secondsSpentSolving !== undefined) {
             return this.data.calcs.secondsSpentSolving;
         }
         return -1;

@@ -108,7 +108,7 @@ export default class DataVisualizer extends React.Component {
         statusChart.render();
 
         const solveTimeDimension = this.ndx.dimension(d => {
-            return d.solveTime / 60;
+            return Math.floor(d.solveTime / 60);
         });
         const solveTimeGroup = solveTimeDimension.group(value => {
             return Math.floor(value/2) * 2;
