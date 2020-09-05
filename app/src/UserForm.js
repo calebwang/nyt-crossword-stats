@@ -41,7 +41,13 @@ export default class UserForm extends React.Component {
                             &nbsp;and copy your account number. This is your user id.
                         </li>
                         <li>
-                            Go to any NYTimes page and copy the value for the NYT-S cookie
+                            Go to any NYTimes page while logged in and copy the value for the NYT-S cookie.
+                        </li>
+                        <li>
+                            Pick a time range and hit Submit!
+                        </li>
+                        <li>
+                            [Optional] Use React Dev Tools to edit configuration settings for the charts.
                         </li>
                     </ol>
                 </div>
