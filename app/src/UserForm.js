@@ -38,7 +38,7 @@ export default class UserForm extends React.Component {
                             <a href={`https://myaccount.nytimes.com/seg`}>
                                 https://myaccount.nytimes.com/seg
                             </a>
-                            &nbsp;and copy your user id
+                            &nbsp;and copy your account number. This is your user id.
                         </li>
                         <li>
                             Go to any NYTimes page and copy the value for the NYT-S cookie
