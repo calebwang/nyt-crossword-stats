@@ -28,6 +28,8 @@ class Puzzle {
     }
 
     day() {
+        // Sigh: When creating Dates from a string like "2020-01-01", the result is UTC midnight
+        // but this may be a different day in the local timezone.
         return new Date(this.data.print_date).getUTCDay();
     }
 
@@ -80,6 +82,16 @@ class DataLoader extends React.Component {
                 loaded: true,
             });
         }
+
+        if (
+            this.props.startDate.getTime() !== prevProps.startDate.getTime() ||
+            this.props.endDate.getTime() !== prevProps.endDate.getTime()
+        ) {
+            this.setState({
+                loaded: false,
+            });
+            this.fetch();
+        }
     }
 
     componentDidMount() {
@@ -95,8 +107,8 @@ class DataLoader extends React.Component {
     }
 
     fetch() {
-        const [startYear, startMonth] = [this.props.startDate.getUTCFullYear(), this.props.startDate.getUTCMonth()];
-        const [currentYear, currentMonth] = [this.props.endDate.getUTCFullYear(), this.props.endDate.getUTCMonth()];
+        const [startYear, startMonth] = [this.props.startDate.getFullYear(), this.props.startDate.getMonth()];
+        const [currentYear, currentMonth] = [this.props.endDate.getFullYear(), this.props.endDate.getMonth()];
         const months = monthsRange(startYear, startMonth, currentYear, currentMonth);
 
         const monthDataRequestPool = new RequestPool(
@@ -110,7 +122,11 @@ class DataLoader extends React.Component {
 
         months.forEach(yearAndMonth => {
             const [year, month] = yearAndMonth;
-            monthDataRequestPool.addRequest(() => this.fetchMonth(year, month));
+            const date = new Date(year, month, 1)
+            // If we already have data for the 1st day of the month, assume we have everything.
+            if (this.data[formatDate(date)] === undefined) {
+                monthDataRequestPool.addRequest(() => this.fetchMonth(year, month));
+            }
         });
         monthDataRequestPool.start();
         monthDataRequestPool.poll().then(results => {

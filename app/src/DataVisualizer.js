@@ -126,9 +126,14 @@ export default class DataVisualizer extends React.Component {
 
         solveTimeChart.render();
 
+        const dateDimension = this.ndx.dimension(d => {
+            const date = this.state.useSolveDate ? d.solveDate : d.date;
+            return d3.timeDay.floor(new Date(date))
+        });
+
         const table = new dc.DataTable("#DataVisualizer-dataTable");
         table
-            .dimension(weekDimension)
+            .dimension(dateDimension)
             .size(100)
             .columns([
                 "date",
