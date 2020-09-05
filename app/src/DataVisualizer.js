@@ -7,8 +7,9 @@ import { formatTime, range, MovingWindow } from "./utils.js";
 
 export default class DataVisualizer extends React.Component {
     state = {
-        timeWindow: 60,
-        windowSize: 10,
+        maxDisplayedCompletionTime: 60,
+        movingAverageWindowSize: 10,
+        distributionBucketSize: 2,
         useSolveDate: false,
     };
 
@@ -113,7 +114,7 @@ export default class DataVisualizer extends React.Component {
         function averageSolveTimeOverTimeGrouper(sourceGroup) {
             return {
                 all: () => {
-                    const movingWindow = new MovingWindow(component.state.windowSize);
+                    const movingWindow = new MovingWindow(component.state.movingAverageWindowSize);
                     return sourceGroup.all().map(g => {
                         // Skip weeks with no solve data
                         if (g.value.numSolved > 0) {
@@ -160,7 +161,7 @@ export default class DataVisualizer extends React.Component {
         solveTimeOverTimeChart
             .yAxis()
             .tickValues(range(0, 90, 5).map(m => m * 60))
-            .tickFormat(v => Math.floor(v/60));
+            .tickFormat(v => Math.floor(v / 60));
 
         solveTimeOverTimeChart.render();
 
@@ -168,7 +169,7 @@ export default class DataVisualizer extends React.Component {
             return Math.floor(d.solveTime / 60);
         });
         const solveTimeGroup = solveTimeDimension.group(value => {
-            return Math.floor(value/2) * 2;
+            return Math.floor(value / this.state.distributionBucketSize) * this.state.distributionBucketSize;
         });
         const solveTimeChart = new dc.BarChart("#DataVisualizer-timeDistributionChart");
 
@@ -179,8 +180,8 @@ export default class DataVisualizer extends React.Component {
             .dimension(solveTimeDimension)
             .group(solveTimeGroup)
             .round(v => Math.floor(v))
-            .x(d3.scaleLinear().domain([0, this.state.timeWindow]))
-            .xUnits(() => this.state.timeWindow / 2)
+            .x(d3.scaleLinear().domain([0, this.state.maxDisplayedCompletionTime]))
+            .xUnits(() => this.state.maxDisplayedCompletionTime / this.state.distributionBucketSize)
             .elasticY(true);
 
         solveTimeChart.render();
@@ -291,7 +292,7 @@ export default class DataVisualizer extends React.Component {
         solveTimeByDayChart
             .xAxis()
             .ticks(4)
-            .tickValues(range(0, this.state.timeWindow, 15).map(m => m * 60))
+            .tickValues(range(0, this.state.maxDisplayedCompletionTime, 15).map(m => m * 60))
             .tickFormat(v => Math.floor(v/60));
         solveTimeByDayChart.render();
 
