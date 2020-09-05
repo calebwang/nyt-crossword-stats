@@ -7,16 +7,20 @@ class Puzzle {
     }
 
     blob() {
-        return {
-            id: this.id(),
-            date: this.date(),
-            day: this.day(),
-            attempted: this.attempted(),
-            solved: this.solved(),
-            cleanlySolved: this.cleanlySolved(),
-            solveTime: this.solveTime(),
-            solveDate: this.solveDate(),
-        };
+        try {
+            return {
+                id: this.id(),
+                date: this.date(),
+                day: this.day(),
+                attempted: this.attempted(),
+                solved: this.solved(),
+                cleanlySolved: this.cleanlySolved(),
+                solveTime: this.solveTime(),
+                solveDate: this.solveDate(),
+            };
+        } catch(e) {
+            throw new Error("failed to extract data: " + JSON.stringify(this.data));
+        }
     }
 
     id() {
@@ -170,7 +174,15 @@ class DataLoader extends React.Component {
         Object.keys(this.data).forEach(puzzleDate => { // Optimization: Skip fetching puzzles if they haven't been filled out at all.
             // Should work fine with the Puzzle class but may wrongly classify puzzles
             // as unattempted (if attempted but not filled out at all)
-            if (this.data[puzzleDate].percent_filled !== 0) {
+            //
+            // Also skip loading if it looks like we've loaded puzzle-level data already
+            //
+            // Also handle a weird edge case for data where the puzzle is solved but 0% filled by always loading
+            // data for solved puzzles.
+            if (
+                (this.data[puzzleDate].solved || this.data[puzzleDate].percent_filled !== 0) &&
+                this.data[puzzleDate].calcs === undefined
+            ) {
                 puzzleRequestPool.addRequest(() => this.fetchPuzzle(puzzleDate));
             }
         });

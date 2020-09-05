@@ -71,7 +71,7 @@ export class RequestPool {
         }
         // Already done
         if (this.runningCount === 0 && this.queue.length === 0) {
-            return new Promise.resolve(this.results);
+            return Promise.resolve(this.results);
         }
 
         // Wait

@@ -11,11 +11,11 @@ export default class DataVisualizer extends React.Component {
     };
 
     componentDidMount() {
-        this.draw();
+        setTimeout(() => this.draw(), 0);
     }
 
     componentDidUpdate() {
-        this.draw();
+        setTimeout(() => this.draw(), 0);
     }
 
     draw() {
@@ -112,7 +112,7 @@ export default class DataVisualizer extends React.Component {
         });
         const solveTimeGroup = solveTimeDimension.group(value => {
             return Math.floor(value/2) * 2;
-        }).reduceCount();
+        });
         const solveTimeChart = new dc.BarChart("#DataVisualizer-timeDistributionChart");
 
         solveTimeChart
