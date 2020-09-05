@@ -5,7 +5,20 @@ import * as d3 from "d3";
 import "./DataVisualizer.css";
 
 export default class DataVisualizer extends React.Component {
+    state = {
+        timeWindow: 60,
+        useSolveDate: false,
+    };
+
     componentDidMount() {
+        this.draw();
+    }
+
+    componentDidUpdate() {
+        this.draw();
+    }
+
+    draw() {
         this.ndx = crossfilter(this.props.data);
 
         function getStatus(d) {
@@ -18,7 +31,10 @@ export default class DataVisualizer extends React.Component {
             }
         }
 
-        const weekDimension = this.ndx.dimension(d => d3.timeWeek.floor(new Date(d.date)));
+        const weekDimension = this.ndx.dimension(d => {
+            const date = this.state.useSolveDate ? d.solveDate : d.date;
+            return d3.timeWeek.floor(new Date(date))
+        });
         const countByWeekAndStatusGroup = weekDimension.group().reduce(
             (group, puzzleData) => {
                 if (puzzleData.solved) {
@@ -105,8 +121,8 @@ export default class DataVisualizer extends React.Component {
             .margins({ left: 100, right: 50, top: 5, bottom: 30 })
             .dimension(solveTimeDimension)
             .group(solveTimeGroup)
-            .x(d3.scaleLinear().domain([0, 60]))
-            .xUnits(() => 30);
+            .x(d3.scaleLinear().domain([0, this.state.timeWindow]))
+            .xUnits(() => this.state.timeWindow / 2);
 
         solveTimeChart.render();
 
