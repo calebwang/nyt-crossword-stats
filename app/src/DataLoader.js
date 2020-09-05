@@ -1,5 +1,5 @@
 import React from "react";
-import { interpolate, monthsRange, monthStartAndEnd, formatDate, RequestPool } from "./utils.js";
+import { localMidnightDateFromString, interpolate, monthsRange, monthStartAndEnd, formatDate, RequestPool } from "./utils.js";
 
 class Puzzle {
     constructor(data) {
@@ -32,9 +32,7 @@ class Puzzle {
     }
 
     day() {
-        // Sigh: When creating Dates from a string like "2020-01-01", the result is UTC midnight
-        // but this may be a different day in the local timezone.
-        return new Date(this.data.print_date).getUTCDay();
+        return localMidnightDateFromString(this.data.print_date).getDay();
     }
 
     attempted() {
@@ -46,7 +44,6 @@ class Puzzle {
     }
 
     cleanlySolved() {
-        console.log(this.data);
         return this.solved() && this.data.firsts.checked === undefined;
     }
 
@@ -156,14 +153,12 @@ class DataLoader extends React.Component {
     }
 
     processMonthData(data) {
-        console.log(data);
         data.results.forEach(puzzleData => {
             this.data[puzzleData.print_date] = puzzleData;
         });
     }
 
     fetchPuzzles() {
-        console.log("fetching puzzles");
         const puzzleRequestPool = new RequestPool(
             20,
             (numCompleted, numTotal) => {
@@ -207,7 +202,6 @@ class DataLoader extends React.Component {
 
     fetchPuzzle(puzzleDate) {
         const puzzleId = this.data[puzzleDate].puzzle_id;
-        console.log(puzzleId);
         return window.fetch(
             interpolate(DataLoader.GAME_URL, {
                 gid: puzzleId,

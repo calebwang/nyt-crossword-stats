@@ -15,6 +15,13 @@ export function addMonths(year, month, numMonths) {
     return [resultDate.getFullYear(), resultDate.getMonth()];
 }
 
+// Sigh: When creating Dates from a string like "2020-01-01", the result is UTC midnight
+// but this may be a different day in the local timezone.
+export function localMidnightDateFromString(str) {
+    const d = new Date(str);
+    return new Date(d.getTime() + d.getTimezoneOffset() * 60 * 1000);
+}
+
 export function monthsRange(startYear, startMonth, endYear, endMonth) {
     const result = [];
     const endDate = new Date(endYear, endMonth);
@@ -28,6 +35,44 @@ export function monthsRange(startYear, startMonth, endYear, endMonth) {
 
 export function formatDate(d) {
     return d.toISOString().split("T")[0];
+}
+
+export function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secondsLeft = Math.floor(seconds - minutes * 60);
+    const secondsString = secondsLeft < 10 ? "0" + secondsLeft : secondsLeft;
+    return `${minutes}:${secondsString}`;
+}
+
+export function range(start, end, incr) {
+    const result = [];
+    let curr = start;
+    while (curr <= end) {
+        result.push(curr);
+        curr += incr;
+    }
+    return result;
+}
+
+export class MovingWindow {
+    constructor(size) {
+        this._items = [];
+        this.size = size;
+        this.nextIndex = 0;
+    }
+
+    add(item) {
+        if (this._items.length < this.size) {
+            this._items.push(item);
+        } else {
+            this._items[this.nextIndex] = item;
+        }
+        this.nextIndex = (this.nextIndex + 1) % this.size;
+    }
+
+    items() {
+        return this._items;
+    }
 }
 
 export class RequestPool {

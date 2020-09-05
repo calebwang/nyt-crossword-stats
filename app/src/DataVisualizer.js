@@ -3,10 +3,12 @@ import * as dc from "dc";
 import * as crossfilter from "crossfilter2";
 import * as d3 from "d3";
 import "./DataVisualizer.css";
+import { localMidnightDateFromString, formatTime, range, MovingWindow } from "./utils.js";
 
 export default class DataVisualizer extends React.Component {
     state = {
         timeWindow: 60,
+        windowSize: 20,
         useSolveDate: false,
     };
 
@@ -19,13 +21,14 @@ export default class DataVisualizer extends React.Component {
     }
 
     draw() {
+        const component = this;
         this.ndx = crossfilter(this.props.data);
 
         function getStatus(d) {
             if (d.solved) {
                 return "Solved";
             } else if (d.attempted) {
-                return "Attempted";
+                return "In Progress";
             } else {
                 return "Not Started";
             }
@@ -35,6 +38,96 @@ export default class DataVisualizer extends React.Component {
             const date = this.state.useSolveDate ? d.solveDate : d.date;
             return d3.timeWeek.floor(new Date(date))
         });
+
+        // Shares a reducer with solveTimeByDayGroup
+        const solveTimeByWeekGroup = weekDimension.group().reduce(
+            (group, d) => {
+                if (d.solved) {
+                    group.totalTime += d.solveTime;
+                    group.numSolved++;
+                    group.avgTime = group.numSolved ? group.totalTime / group.numSolved : 0;
+                }
+                return group;
+            },
+            (group, d) => {
+                if (d.solved) {
+                    group.totalTime -= d.solveTime;
+                    group.numSolved--;
+                    group.avgTime = group.numSolved ? group.totalTime / group.numSolved : 0;
+                }
+                return group;
+            },
+            () => ({
+                totalTime: 0,
+                numSolved: 0,
+                avgTime: 0,
+            })
+        );
+
+        function averageSolveTimeOverTimeGrouper(sourceGroup) {
+            return {
+                all: () => {
+                    const movingWindow = new MovingWindow(component.state.windowSize);
+                    return sourceGroup.all().map(g => {
+                        movingWindow.add(g.value);
+                        const windowTotals = movingWindow.items().reduce(
+                            (acc, groupValue) => {
+                                acc.totalTime += groupValue.totalTime;
+                                acc.numSolved += groupValue.numSolved;
+                                return acc;
+                            },
+                            { totalTime: 0, numSolved: 0 }
+                        );
+
+                        const windowAverage = windowTotals.numSolved > 0
+                            ? windowTotals.totalTime / windowTotals.numSolved
+                            : 0;
+
+                        return { key: g.key, value: windowAverage };
+                    });
+                }
+            }
+        }
+        const averageSolveTimeOverTimeGroup = averageSolveTimeOverTimeGrouper(solveTimeByWeekGroup);
+
+        const solveTimeOverTimeChart = new dc.LineChart("#DataVisualizer-solveTimeOverTimeChart");
+        solveTimeOverTimeChart
+            .width(1000)
+            .height(400)
+            .margins({ left: 100, right: 50, top: 10, bottom: 30 })
+            .dimension(weekDimension)
+            .group(averageSolveTimeOverTimeGroup)
+            .curve(d3.curveCatmullRom.alpha(0.5))
+            .x(d3.scaleTime().domain([this.props.startDate.getTime(), this.props.endDate.getTime()]))
+            .round(d3.timeWeek.floor)
+            .xUnits(d3.timeWeeks)
+            .elasticY(true)
+            .yAxisPadding(60);
+
+        solveTimeOverTimeChart.render();
+
+        const solveTimeDimension = this.ndx.dimension(d => {
+            return Math.floor(d.solveTime / 60);
+        });
+        const solveTimeGroup = solveTimeDimension.group(value => {
+            return Math.floor(value/2) * 2;
+        });
+        const solveTimeChart = new dc.BarChart("#DataVisualizer-timeDistributionChart");
+
+        solveTimeChart
+            .width(1000)
+            .height(400)
+            .margins({ left: 100, right: 50, top: 10, bottom: 30 })
+            .dimension(solveTimeDimension)
+            .group(solveTimeGroup)
+            .round(v => Math.floor(v))
+            .x(d3.scaleLinear().domain([0, this.state.timeWindow]))
+            .xUnits(() => this.state.timeWindow / 2)
+            .elasticY(true);
+
+        solveTimeChart.render();
+
+
         const countByWeekAndStatusGroup = weekDimension.group().reduce(
             (group, puzzleData) => {
                 if (puzzleData.solved) {
@@ -66,11 +159,11 @@ export default class DataVisualizer extends React.Component {
 
         dateChart
             .width(1000)
-            .height(500)
+            .height(200)
             .margins({ left: 100, right: 50, top: 5, bottom: 30 })
             .dimension(weekDimension)
             .group(countByWeekAndStatusGroup, "Solved", group => group.value.solved)
-            .stack(countByWeekAndStatusGroup, "Attempted", group => group.value.attempted)
+            .stack(countByWeekAndStatusGroup, "In Progress", group => group.value.attempted)
             .stack(countByWeekAndStatusGroup, "Not Started", group => group.value.not_started)
             .elasticY(true)
             .x(d3.scaleTime().domain([this.props.startDate.getTime(), this.props.endDate.getTime()]))
@@ -80,6 +173,9 @@ export default class DataVisualizer extends React.Component {
         dateChart.legend(dc.legend());
         dateChart.render();
 
+
+
+        // # Render Column 2
         const dayDimension = this.ndx.dimension(d => d.day);
         const dayGroup = dayDimension.group();
 
@@ -91,7 +187,7 @@ export default class DataVisualizer extends React.Component {
             .height(200)
             .dimension(dayDimension)
             .group(dayGroup)
-            .label(d => daysOfWeekLabels[d.key] + " (" + d.value + ")");
+            .label(d => `${daysOfWeekLabels[d.key]} (${d.value})`);
 
         dayChart.render();
 
@@ -105,30 +201,10 @@ export default class DataVisualizer extends React.Component {
             .height(200)
             .dimension(statusDimension)
             .group(statusGroup)
-            .label(d => d.key + "(" + d.value + ")");
+            .label(d => `${d.key} (${d.value})`);
 
         statusChart.render();
 
-        const solveTimeDimension = this.ndx.dimension(d => {
-            return Math.floor(d.solveTime / 60);
-        });
-        const solveTimeGroup = solveTimeDimension.group(value => {
-            return Math.floor(value/2) * 2;
-        });
-        const solveTimeChart = new dc.BarChart("#DataVisualizer-timeDistributionChart");
-
-        solveTimeChart
-            .width(1000)
-            .height(500)
-            .margins({ left: 100, right: 50, top: 5, bottom: 30 })
-            .dimension(solveTimeDimension)
-            .group(solveTimeGroup)
-            .round(v => Math.floor(v))
-            .x(d3.scaleLinear().domain([0, this.state.timeWindow]))
-            .xUnits(() => this.state.timeWindow / 2)
-            .elasticY(true);
-
-        solveTimeChart.render();
 
         const dayDimension2 = this.ndx.dimension(d => d.day);
         const solveRateByDayGroup = dayDimension2.group().reduce(
@@ -138,7 +214,6 @@ export default class DataVisualizer extends React.Component {
                 }
                 group.total++;
                 group.solvePct = Math.round(100 * group.solved / group.total);
-                console.log(group);
                 return group;
             },
             (group, d) => {
@@ -160,12 +235,53 @@ export default class DataVisualizer extends React.Component {
         solveRateChart
             .width(220)
             .height(230)
-            .margins({ left: 10, top: 0, bottom: 30, right: 10 })
+            .margins({ left: 10, top: 0, bottom: 30, right: 20 })
             .dimension(dayDimension2)
             .group(solveRateByDayGroup)
             .valueAccessor(g => g.value.solvePct)
-            .label(d => daysOfWeekLabels[d.key]);
+            .label(d => `${daysOfWeekLabels[d.key]} (${d.value.solvePct}%)`);
         solveRateChart.render();
+
+        const solveTimeByDayGroup = dayDimension2.group().reduce(
+            (group, d) => {
+                if (d.solved) {
+                    group.totalTime += d.solveTime;
+                    group.numSolved++;
+                    group.avgTime = group.numSolved ? group.totalTime / group.numSolved : 0;
+                }
+                return group;
+            },
+            (group, d) => {
+                if (d.solved) {
+                    group.totalTime -= d.solveTime;
+                    group.numSolved--;
+                    group.avgTime = group.numSolved ? group.totalTime / group.numSolved : 0;
+                }
+                return group;
+            },
+            () => ({
+                totalTime: 0,
+                numSolved: 0,
+                avgTime: 0,
+            })
+        );
+        const solveTimeByDayChart = new dc.RowChart("#DataVisualizer-solveTimeChart");
+        solveTimeByDayChart
+            .width(220)
+            .height(230)
+            .margins({ left: 10, top: 0, bottom: 30, right: 20 })
+            .elasticX(true)
+            .dimension(dayDimension2)
+            .group(solveTimeByDayGroup)
+            .valueAccessor(g => g.value.avgTime)
+            .label(d => `${daysOfWeekLabels[d.key]} (${formatTime(d.value.avgTime)})`);
+
+        solveTimeByDayChart
+            .xAxis()
+            .ticks(4)
+            .tickValues(range(0, this.state.timeWindow, 15).map(m => m * 60))
+            .tickFormat(v => Math.floor(v/60));
+        solveTimeByDayChart.render();
 
         const dateDimension = this.ndx.dimension(d => {
             const date = this.state.useSolveDate ? d.solveDate : d.date;
@@ -194,16 +310,18 @@ export default class DataVisualizer extends React.Component {
     render() {
         return (
             <div className="DataVisualizer">
-                <div className="DataVisualizer-row1">
-                    <ChartSection title="Puzzles over time" chartId="dateChart" />
-                    <div className="DataVisualizer-row1-section2">
+                <div className="DataVisualizer-charts">
+                    <div id="DataVisualizer-col1" className="DataVisualizer-col">
+                        <ChartSection title="Average completion time over time (smoothed)" chartId="solveTimeOverTimeChart" />
+                        <ChartSection title="Completion time distribution" chartId="timeDistributionChart" />
+                        <ChartSection title="Puzzles over time" chartId="dateChart" />
+                    </div>
+                    <div id="DataVisualizer-col2" className="DataVisualizer-col">
                         <ChartSection title="By day" chartId="dayChart" />
                         <ChartSection title="By status" chartId="statusChart" />
+                        <ChartSection title="Completion rate" chartId="solveRateChart" />
+                        <ChartSection title="Average completion time" chartId="solveTimeChart" />
                     </div>
-                </div>
-                <div className="DataVisualizer-row2">
-                    <ChartSection title="Completion time" chartId="timeDistributionChart" />
-                    <ChartSection title="Completion rate" chartId="solveRateChart" />
                 </div>
                 <table className="table table-hover" id="DataVisualizer-dataTable"></table>
             </div>

@@ -5,7 +5,8 @@
     flex: 1 0 auto;
     justify-content: center;
     min-width: 1200px;
-    background: #ADD8E6
+    background: #ADD8E6;
+    margin-bottom: 10px;
 }
 
 .UserForm-header {
