@@ -72,6 +72,7 @@ export default class DataVisualizer extends React.Component {
             .group(countByWeekAndStatusGroup, "Solved", group => group.value.solved)
             .stack(countByWeekAndStatusGroup, "Attempted", group => group.value.attempted)
             .stack(countByWeekAndStatusGroup, "Not Started", group => group.value.not_started)
+            .elasticY(true)
             .x(d3.scaleTime().domain([this.props.startDate.getTime(), this.props.endDate.getTime()]))
             .round(d3.timeWeek.floor)
             .xUnits(d3.timeWeeks);
@@ -124,11 +125,13 @@ export default class DataVisualizer extends React.Component {
             .group(solveTimeGroup)
             .round(v => Math.floor(v))
             .x(d3.scaleLinear().domain([0, this.state.timeWindow]))
-            .xUnits(() => this.state.timeWindow / 2);
+            .xUnits(() => this.state.timeWindow / 2)
+            .elasticY(true);
 
         solveTimeChart.render();
 
-        const solveRateByDayGroup = dayDimension.group().reduce(
+        const dayDimension2 = this.ndx.dimension(d => d.day);
+        const solveRateByDayGroup = dayDimension2.group().reduce(
             (group, d) => {
                 if (d.solved) {
                     group.solved++;
@@ -155,10 +158,10 @@ export default class DataVisualizer extends React.Component {
 
         const solveRateChart = new dc.RowChart("#DataVisualizer-solveRateChart");
         solveRateChart
-            .width(200)
-            .height(200)
-            .margins({ left: 0, top: 0, bottom: 0, right: 0 })
-            .dimension(dayDimension)
+            .width(220)
+            .height(230)
+            .margins({ left: 10, top: 0, bottom: 30, right: 10 })
+            .dimension(dayDimension2)
             .group(solveRateByDayGroup)
             .valueAccessor(g => g.value.solvePct)
             .label(d => daysOfWeekLabels[d.key]);
@@ -192,17 +195,31 @@ export default class DataVisualizer extends React.Component {
         return (
             <div className="DataVisualizer">
                 <div className="DataVisualizer-row1">
-                    <div id="DataVisualizer-dateChart"></div>
+                    <ChartSection title="Puzzles over time" chartId="dateChart" />
                     <div className="DataVisualizer-row1-section2">
-                        <div id="DataVisualizer-dayChart"></div>
-                        <div id="DataVisualizer-statusChart"></div>
+                        <ChartSection title="By day" chartId="dayChart" />
+                        <ChartSection title="By status" chartId="statusChart" />
                     </div>
                 </div>
                 <div className="DataVisualizer-row2">
-                    <div id="DataVisualizer-timeDistributionChart"> </div>
-                    <div id="DataVisualizer-solveRateChart"> </div>
+                    <ChartSection title="Completion time" chartId="timeDistributionChart" />
+                    <ChartSection title="Completion rate" chartId="solveRateChart" />
                 </div>
                 <table className="table table-hover" id="DataVisualizer-dataTable"></table>
+            </div>
+        );
+
+    }
+}
+
+class ChartSection extends React.Component {
+    render() {
+        return (
+             <div className="DataVisualizer-chartSection">
+                <div className="DataVisualizer-chartHeader">
+                    {this.props.title}
+                </div>
+                <div id={`DataVisualizer-${this.props.chartId}`}></div>
             </div>
         );
 

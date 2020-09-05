@@ -22,6 +22,12 @@
     display: flex;
 }
 
+.DataVisualizer-chartHeader {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
 #DataVisualizer-solveRateChart {
 }
 
