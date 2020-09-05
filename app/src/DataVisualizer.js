@@ -115,7 +115,11 @@ export default class DataVisualizer extends React.Component {
                 all: () => {
                     const movingWindow = new MovingWindow(component.state.windowSize);
                     return sourceGroup.all().map(g => {
-                        movingWindow.add(g.value);
+                        // Skip weeks with no solve data
+                        if (g.value.numSolved > 0) {
+                            movingWindow.add(g.value);
+                        }
+
                         const windowTotals = movingWindow.items().reduce(
                             (acc, groupValue) => {
                                 acc.totalTime += groupValue.totalTime;
