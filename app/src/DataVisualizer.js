@@ -3,12 +3,12 @@ import * as dc from "dc";
 import * as crossfilter from "crossfilter2";
 import * as d3 from "d3";
 import "./DataVisualizer.css";
-import { localMidnightDateFromString, formatTime, range, MovingWindow } from "./utils.js";
+import { formatTime, range, MovingWindow } from "./utils.js";
 
 export default class DataVisualizer extends React.Component {
     state = {
         timeWindow: 60,
-        windowSize: 20,
+        windowSize: 10,
         useSolveDate: false,
     };
 
@@ -38,6 +38,52 @@ export default class DataVisualizer extends React.Component {
             const date = this.state.useSolveDate ? d.solveDate : d.date;
             return d3.timeWeek.floor(new Date(date))
         });
+
+        const countByWeekAndStatusGroup = weekDimension.group().reduce(
+            (group, puzzleData) => {
+                if (puzzleData.solved) {
+                    group.solved += 1;
+                } else if (puzzleData.attempted) {
+                    group.attempted += 1;
+                } else {
+                    group.not_started += 1;
+                }
+                return group;
+            },
+            (group, puzzleData) => {
+                if (puzzleData.solved) {
+                    group.solved -= 1;
+                } else if (puzzleData.attempted) {
+                    group.attempted -= 1;
+                } else {
+                    group.not_started -= 1;
+                }
+                return group;
+            },
+            () => ({
+                attempted: 0,
+                solved: 0,
+                not_started: 0,
+            })
+        );
+        const dateChart = dc.barChart("#DataVisualizer-dateChart");
+
+        dateChart
+            .width(1000)
+            .height(150)
+            .margins({ left: 100, right: 50, top: 5, bottom: 30 })
+            .dimension(weekDimension)
+            .group(countByWeekAndStatusGroup, "Solved", group => group.value.solved)
+            .stack(countByWeekAndStatusGroup, "In Progress", group => group.value.attempted)
+            .stack(countByWeekAndStatusGroup, "Not Started", group => group.value.not_started)
+            .elasticY(true)
+            .x(d3.scaleTime().domain([this.props.startDate.getTime(), this.props.endDate.getTime()]))
+            .round(d3.timeWeek.floor)
+            .xUnits(d3.timeWeeks);
+
+        dateChart.legend(dc.legend());
+        dateChart.render();
+
 
         // Shares a reducer with solveTimeByDayGroup
         const solveTimeByWeekGroup = weekDimension.group().reduce(
@@ -94,15 +140,23 @@ export default class DataVisualizer extends React.Component {
         solveTimeOverTimeChart
             .width(1000)
             .height(400)
-            .margins({ left: 100, right: 50, top: 10, bottom: 30 })
+            .margins({ left: 30, right: 50, top: 10, bottom: 30 })
             .dimension(weekDimension)
             .group(averageSolveTimeOverTimeGroup)
+            .rangeChart(dateChart)
+            .brushOn(false)
+            .mouseZoomable(true)
             .curve(d3.curveCatmullRom.alpha(0.5))
             .x(d3.scaleTime().domain([this.props.startDate.getTime(), this.props.endDate.getTime()]))
             .round(d3.timeWeek.floor)
             .xUnits(d3.timeWeeks)
             .elasticY(true)
             .yAxisPadding(60);
+
+        solveTimeOverTimeChart
+            .yAxis()
+            .tickValues(range(0, 90, 5).map(m => m * 60))
+            .tickFormat(v => Math.floor(v/60));
 
         solveTimeOverTimeChart.render();
 
@@ -126,52 +180,6 @@ export default class DataVisualizer extends React.Component {
             .elasticY(true);
 
         solveTimeChart.render();
-
-
-        const countByWeekAndStatusGroup = weekDimension.group().reduce(
-            (group, puzzleData) => {
-                if (puzzleData.solved) {
-                    group.solved += 1;
-                } else if (puzzleData.attempted) {
-                    group.attempted += 1;
-                } else {
-                    group.not_started += 1;
-                }
-                return group;
-            },
-            (group, puzzleData) => {
-                if (puzzleData.solved) {
-                    group.solved -= 1;
-                } else if (puzzleData.attempted) {
-                    group.attempted -= 1;
-                } else {
-                    group.not_started -= 1;
-                }
-                return group;
-            },
-            () => ({
-                attempted: 0,
-                solved: 0,
-                not_started: 0,
-            })
-        );
-        const dateChart = dc.barChart("#DataVisualizer-dateChart");
-
-        dateChart
-            .width(1000)
-            .height(200)
-            .margins({ left: 100, right: 50, top: 5, bottom: 30 })
-            .dimension(weekDimension)
-            .group(countByWeekAndStatusGroup, "Solved", group => group.value.solved)
-            .stack(countByWeekAndStatusGroup, "In Progress", group => group.value.attempted)
-            .stack(countByWeekAndStatusGroup, "Not Started", group => group.value.not_started)
-            .elasticY(true)
-            .x(d3.scaleTime().domain([this.props.startDate.getTime(), this.props.endDate.getTime()]))
-            .round(d3.timeWeek.floor)
-            .xUnits(d3.timeWeeks);
-
-        dateChart.legend(dc.legend());
-        dateChart.render();
 
 
 
@@ -312,9 +320,9 @@ export default class DataVisualizer extends React.Component {
             <div className="DataVisualizer">
                 <div className="DataVisualizer-charts">
                     <div id="DataVisualizer-col1" className="DataVisualizer-col">
-                        <ChartSection title="Average completion time over time (smoothed)" chartId="solveTimeOverTimeChart" />
-                        <ChartSection title="Completion time distribution" chartId="timeDistributionChart" />
-                        <ChartSection title="Puzzles over time" chartId="dateChart" />
+                        <ChartSection title="Average completion time over time (minutes, smoothed)" chartId="solveTimeOverTimeChart" />
+                        <ChartSection title="Completion time distribution (minutes)" chartId="timeDistributionChart" />
+                        <ChartSection title="Puzzles by week" chartId="dateChart" />
                     </div>
                     <div id="DataVisualizer-col2" className="DataVisualizer-col">
                         <ChartSection title="By day" chartId="dayChart" />
