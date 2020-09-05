@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "864af4799ccd7abb984f729c6e9acd72",
+    "revision": "7c3f421949b984237876912dc751accf",
     "url": "/nyt-crossword-stats/index.html"
   },
   {
@@ -8,7 +8,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/nyt-crossword-stats/static/css/2.5ed3c533.chunk.css"
   },
   {
-    "revision": "09743433de3600cba4d8",
+    "revision": "9cc2c5fb62d3c90accca",
     "url": "/nyt-crossword-stats/static/css/main.b5ba778c.chunk.css"
   },
   {
@@ -20,8 +20,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/nyt-crossword-stats/static/js/2.1d91d1a9.chunk.js.LICENSE.txt"
   },
   {
-    "revision": "09743433de3600cba4d8",
-    "url": "/nyt-crossword-stats/static/js/main.2858b7e6.chunk.js"
+    "revision": "9cc2c5fb62d3c90accca",
+    "url": "/nyt-crossword-stats/static/js/main.b32c11c0.chunk.js"
   },
   {
     "revision": "87edd73e16cd2aba1f4f",

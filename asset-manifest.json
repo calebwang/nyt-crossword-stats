@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/nyt-crossword-stats/static/css/main.b5ba778c.chunk.css",
-    "main.js": "/nyt-crossword-stats/static/js/main.2858b7e6.chunk.js",
-    "main.js.map": "/nyt-crossword-stats/static/js/main.2858b7e6.chunk.js.map",
+    "main.js": "/nyt-crossword-stats/static/js/main.b32c11c0.chunk.js",
+    "main.js.map": "/nyt-crossword-stats/static/js/main.b32c11c0.chunk.js.map",
     "runtime-main.js": "/nyt-crossword-stats/static/js/runtime-main.076c0cad.js",
     "runtime-main.js.map": "/nyt-crossword-stats/static/js/runtime-main.076c0cad.js.map",
     "static/css/2.5ed3c533.chunk.css": "/nyt-crossword-stats/static/css/2.5ed3c533.chunk.css",
     "static/js/2.1d91d1a9.chunk.js": "/nyt-crossword-stats/static/js/2.1d91d1a9.chunk.js",
     "static/js/2.1d91d1a9.chunk.js.map": "/nyt-crossword-stats/static/js/2.1d91d1a9.chunk.js.map",
     "index.html": "/nyt-crossword-stats/index.html",
-    "precache-manifest.d2e084f04dce2d329bde7fbb652848a4.js": "/nyt-crossword-stats/precache-manifest.d2e084f04dce2d329bde7fbb652848a4.js",
+    "precache-manifest.9677e2a36fe51cd478b6d8d2c6c65025.js": "/nyt-crossword-stats/precache-manifest.9677e2a36fe51cd478b6d8d2c6c65025.js",
     "service-worker.js": "/nyt-crossword-stats/service-worker.js",
     "static/css/2.5ed3c533.chunk.css.map": "/nyt-crossword-stats/static/css/2.5ed3c533.chunk.css.map",
     "static/css/main.b5ba778c.chunk.css.map": "/nyt-crossword-stats/static/css/main.b5ba778c.chunk.css.map",
@@ -20,6 +20,6 @@
     "static/css/2.5ed3c533.chunk.css",
     "static/js/2.1d91d1a9.chunk.js",
     "static/css/main.b5ba778c.chunk.css",
-    "static/js/main.2858b7e6.chunk.js"
+    "static/js/main.b32c11c0.chunk.js"
   ]
 }
