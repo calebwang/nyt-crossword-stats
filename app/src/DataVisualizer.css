@@ -17,6 +17,13 @@
     justify-content: space-around;
 }
 
-.DataVisualizer-solveRateChart {
+.DataVisualizer-row2 {
     margin-top: 10px;
+    display: flex;
+}
+
+#DataVisualizer-solveRateChart {
+}
+
+#DataVisualizer-timeDistributionChart {
 }

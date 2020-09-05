@@ -82,14 +82,15 @@ export default class DataVisualizer extends React.Component {
         const dayDimension = this.ndx.dimension(d => d.day);
         const dayGroup = dayDimension.group();
 
-        const daysOfWeek = ["Su", "M", "Tu", "W", "Th", "Fr", "Sa"];
+        const daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
+        const daysOfWeekLabels = ["Su", "M", "Tu", "W", "Th", "Fr", "Sa"];
         const dayChart = new dc.PieChart("#DataVisualizer-dayChart");
         dayChart
             .width(200)
             .height(200)
             .dimension(dayDimension)
             .group(dayGroup)
-            .label(d => daysOfWeek[d.key] + " (" + d.value + ")");
+            .label(d => daysOfWeekLabels[d.key] + " (" + d.value + ")");
 
         dayChart.render();
 
@@ -116,15 +117,52 @@ export default class DataVisualizer extends React.Component {
         const solveTimeChart = new dc.BarChart("#DataVisualizer-timeDistributionChart");
 
         solveTimeChart
-            .width(1200)
+            .width(1000)
             .height(500)
             .margins({ left: 100, right: 50, top: 5, bottom: 30 })
             .dimension(solveTimeDimension)
             .group(solveTimeGroup)
+            .round(v => Math.floor(v))
             .x(d3.scaleLinear().domain([0, this.state.timeWindow]))
             .xUnits(() => this.state.timeWindow / 2);
 
         solveTimeChart.render();
+
+        const solveRateByDayGroup = dayDimension.group().reduce(
+            (group, d) => {
+                if (d.solved) {
+                    group.solved++;
+                }
+                group.total++;
+                group.solvePct = Math.round(100 * group.solved / group.total);
+                console.log(group);
+                return group;
+            },
+            (group, d) => {
+                if (d.solved) {
+                    group.solved--;
+                }
+                group.total--;
+                group.solvePct = group.total === 0 ? 0 : Math.round(100 * group.solved / group.total);
+                return group;
+            },
+            () => ({
+                solved: 0,
+                total: 0,
+                solvePct: 0,
+            })
+        );
+
+        const solveRateChart = new dc.RowChart("#DataVisualizer-solveRateChart");
+        solveRateChart
+            .width(200)
+            .height(200)
+            .margins({ left: 0, top: 0, bottom: 0, right: 0 })
+            .dimension(dayDimension)
+            .group(solveRateByDayGroup)
+            .valueAccessor(g => g.value.solvePct)
+            .label(d => daysOfWeekLabels[d.key]);
+        solveRateChart.render();
 
         const dateDimension = this.ndx.dimension(d => {
             const date = this.state.useSolveDate ? d.solveDate : d.date;
@@ -138,7 +176,7 @@ export default class DataVisualizer extends React.Component {
             .columns([
                 "date",
                 "solveDate",
-                { label: "Day", format: d => daysOfWeek[d.day] },
+                { label: "Day", format: d => daysOfWeekLabels[d.day] },
                 { label: "Status", format: d => getStatus(d) },
                 "solveTime",
             ])
@@ -160,8 +198,10 @@ export default class DataVisualizer extends React.Component {
                         <div id="DataVisualizer-statusChart"></div>
                     </div>
                 </div>
-                <div id="DataVisualizer-solveRateChart"> </div>
-                <div id="DataVisualizer-timeDistributionChart"> </div>
+                <div className="DataVisualizer-row2">
+                    <div id="DataVisualizer-timeDistributionChart"> </div>
+                    <div id="DataVisualizer-solveRateChart"> </div>
+                </div>
                 <table className="table table-hover" id="DataVisualizer-dataTable"></table>
             </div>
         );
