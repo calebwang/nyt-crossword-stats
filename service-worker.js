@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/nyt-crossword-stats/precache-manifest.489fb3ef09bbc65508cfec88407f61c5.js"
+  "/nyt-crossword-stats/precache-manifest.d2e084f04dce2d329bde7fbb652848a4.js"
 );
 
 self.addEventListener('message', (event) => {
