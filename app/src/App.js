@@ -1,7 +1,9 @@
 import React from "react";
 import "./App.css";
 import { interpolate, monthsRange, addMonths, monthStartAndEnd, formatDate, RequestPool } from "./utils.js";
-import dc from "dc";
+import * as dc from "dc";
+import * as crossfilter from "crossfilter2";
+import * as d3 from "d3";
 
 
 const UID = "77239038"
@@ -12,6 +14,8 @@ class App extends React.Component {
         this.state = {
             userId: null,
             userCookie: null,
+            startDate: new Date(2020, 0, 1),
+            endDate: new Date(2020, 9, 1),
         };
         this.onInputUserDetails = this.onInputUserDetails.bind(this);
     }
@@ -22,7 +26,13 @@ class App extends React.Component {
                 <UserForm onSubmit={this.onInputUserDetails}/>
                 {
                     this.state.userId
-                        ?  <DataContent userId={this.state.userId} userCookie={this.state.userCookie} key={this.state.userId} />
+                        ?  <DataContent
+                                userId={this.state.userId}
+                                userCookie={this.state.userCookie}
+                                startDate={this.state.startDate}
+                                endDate={this.state.endDate}
+                                key={this.state.userId}
+                           />
                         : null
                 }
             </div>
@@ -45,8 +55,7 @@ class UserForm extends React.Component {
 
         this.setUserId = this.setUserId.bind(this);
         this.setUserCookie = this.setUserCookie.bind(this);
-        this.handleSubmit = this.handleSubmit.bind(this);
-        this.submit = this.submit.bind(this);
+        this.handleSubmit = this.handleSubmit.bind(this); this.submit = this.submit.bind(this);
         this.handleKeyPress = this.handleKeyPress.bind(this);
 
         this.userCookieInputRef = React.createRef();
@@ -116,12 +125,18 @@ class DataContent extends React.Component {
 
     render() {
         return (
-            <DataLoader userId={this.props.userId} userCookie={this.props.userCookie} render={this.renderVisualization} />
+            <DataLoader
+                userId={this.props.userId}
+                userCookie={this.props.userCookie}
+                render={this.renderVisualization}
+                startDate={this.props.startDate}
+                endDate={this.props.endDate}
+            />
         );
     }
 
     renderVisualization(data) {
-        return <DataVisualizer data={data} />;
+        return <DataVisualizer data={data} startDate={this.props.startDate} endDate={this.props.endDate} />;
     }
 }
 
@@ -161,9 +176,8 @@ class DataLoader extends React.Component {
     }
 
     fetch() {
-        const now = new Date();
-        const [currentYear, currentMonth] = [now.getFullYear(), now.getMonth()];
-        const [startYear, startMonth] = addMonths(currentYear, currentMonth, -1);
+        const [startYear, startMonth] = [this.props.startDate.getUTCFullYear(), this.props.startDate.getUTCMonth()];
+        const [currentYear, currentMonth] = [this.props.endDate.getUTCFullYear(), this.props.endDate.getUTCMonth()];
         const months = monthsRange(startYear, startMonth, currentYear, currentMonth);
 
         const monthDataRequestPool = new RequestPool(
@@ -181,7 +195,7 @@ class DataLoader extends React.Component {
         });
         monthDataRequestPool.start();
         monthDataRequestPool.poll().then(results => {
-            results.forEach(result => this.processMonthData(result));
+            results.filter(result => result.results !== null).forEach(result => this.processMonthData(result));
             this.setState({
                 progress: "puzzle data",
             });
@@ -262,9 +276,148 @@ class DataLoader extends React.Component {
 }
 
 class DataVisualizer extends React.Component {
-    render() {
-        return JSON.stringify(this.props.data, null, 4);
+    componentDidMount() {
+        this.ndx = crossfilter(this.props.data);
+
+        function getStatus(d) {
+            if (d.solved) {
+                return "Solved";
+            } else if (d.attempted) {
+                return "Attempted";
+            } else {
+                return "Not Started";
+            }
+        }
+
+        const weekDimension = this.ndx.dimension(d => d3.timeWeek.floor(new Date(d.date)));
+        const countByWeekAndStatusGroup = weekDimension.group().reduce(
+            (group, puzzleData) => {
+                if (puzzleData.solved) {
+                    group.solved += 1;
+                } else if (puzzleData.attempted) {
+                    group.attempted += 1;
+                } else {
+                    group.not_started += 1;
+                }
+                return group;
+            },
+            (group, puzzleData) => {
+                if (puzzleData.solved) {
+                    group.solved -= 1;
+                } else if (puzzleData.attempted) {
+                    group.attempted -= 1;
+                } else {
+                    group.not_started -= 1;
+                }
+                return group;
+            },
+            () => ({
+                attempted: 0,
+                solved: 0,
+                not_started: 0,
+            })
+        );
+        const dateChart = dc.barChart("#DataVisualizer-dateChart");
+
+        dateChart
+            .width(1000)
+            .height(500)
+            .margins({ left: 100, right: 50, top: 0, bottom: 30 })
+            .dimension(weekDimension)
+            .group(countByWeekAndStatusGroup, "Solved", group => group.value.solved)
+            .stack(countByWeekAndStatusGroup, "Attempted", group => group.value.attempted)
+            .stack(countByWeekAndStatusGroup, "Not Started", group => group.value.not_started)
+            .x(d3.scaleTime().domain([this.props.startDate.getTime(), this.props.endDate.getTime()]))
+            .round(d3.timeWeek.floor)
+            .xUnits(d3.timeWeeks);
+
+        dateChart.legend(dc.legend());
+        dateChart.render();
+
+        const dayDimension = this.ndx.dimension(d => d.day);
+        const dayGroup = dayDimension.group();
+
+        const daysOfWeek = ["Su", "M", "Tu", "W", "Th", "Fr", "Sa"];
+        const dayChart = new dc.PieChart("#DataVisualizer-dayChart");
+        dayChart
+            .width(200)
+            .height(200)
+            .dimension(dayDimension)
+            .group(dayGroup)
+            .label(d => daysOfWeek[d.key] + " (" + d.value + ")");
+
+        dayChart.render();
+
+
+        const statusDimension = this.ndx.dimension(getStatus);
+        const statusGroup = statusDimension.group();
+
+        const statusChart = new dc.PieChart("#DataVisualizer-statusChart");
+        statusChart
+            .width(200)
+            .height(200)
+            .dimension(statusDimension)
+            .group(statusGroup)
+            .label(d => d.key + "(" + d.value + ")");
+
+        statusChart.render();
+
+        const solveTimeDimension = this.ndx.dimension(d => {
+            return d.solveTime / 60;
+        });
+        const solveTimeGroup = solveTimeDimension.group(value => {
+            return Math.floor(value/2) * 2;
+        }).reduceCount();
+        const solveTimeChart = new dc.BarChart("#DataVisualizer-timeDistributionChart");
+
+        solveTimeChart
+            .width(1200)
+            .height(500)
+            .margins({ left: 100, right: 50, top: 0, bottom: 30 })
+            .dimension(solveTimeDimension)
+            .group(solveTimeGroup)
+            .x(d3.scaleLinear().domain([0, 60]))
+            .xUnits(() => 30);
+
+        solveTimeChart.render();
+
+        const table = new dc.DataTable("#DataVisualizer-dataTable");
+        table
+            .dimension(weekDimension)
+            .size(100)
+            .columns([
+                "date",
+                "day",
+                { label: "Status", format: d => getStatus(d) },
+                "solveTime",
+            ])
+            .on("renderlet", table => {
+              table.selectAll(".dc-table-group").classed("info", true);
+            });
+        table.render();
+
+
     }
+
+    render() {
+        return (
+            <div className="DataVisualizer">
+                <div className="DataVisualizer-row1">
+                    <div id="DataVisualizer-dateChart"></div>
+                    <div className="DataVisualizer-row1-section2">
+                        <div id="DataVisualizer-dayChart"></div>
+                        <div id="DataVisualizer-statusChart"></div>
+                    </div>
+                </div>
+                <div id="DataVisualizer-solveRateChart"> </div>
+                <div id="DataVisualizer-timeDistributionChart"> </div>
+                <table className="table table-hover" id="DataVisualizer-dataTable"></table>
+            </div>
+        );
+
+    }
+
+    comp
 }
 
 class Puzzle {
@@ -305,6 +458,7 @@ class Puzzle {
     }
 
     cleanlySolved() {
+        console.log(this.data);
         return this.solved() && this.data.firsts.checked === undefined;
     }
 

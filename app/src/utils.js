@@ -12,7 +12,7 @@ export function monthStartAndEnd(year, month) {
 
 export function addMonths(year, month, numMonths) {
     const resultDate = new Date(year, month + numMonths, 1);
-    return [resultDate.getFullYear(), resultDate.getMonth()];
+    return [resultDate.getUTCFullYear(), resultDate.getUTCMonth()];
 }
 
 export function monthsRange(startYear, startMonth, endYear, endMonth) {
@@ -20,8 +20,8 @@ export function monthsRange(startYear, startMonth, endYear, endMonth) {
     const endDate = new Date(endYear, endMonth);
     let currentDate = new Date(startYear, startMonth);
     while (currentDate.getTime() <= endDate.getTime()) {
-        result.push([currentDate.getFullYear(), currentDate.getMonth()]);
-        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1);
+        result.push([currentDate.getUTCFullYear(), currentDate.getUTCMonth()]);
+        currentDate = new Date(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1);
     }
     return result;
 }
