@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "7c3f421949b984237876912dc751accf",
+    "revision": "700520ffb2c6179d5a15124abf7f1d0b",
     "url": "/nyt-crossword-stats/index.html"
   },
   {
