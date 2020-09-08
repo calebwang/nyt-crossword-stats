@@ -8,7 +8,7 @@ export default class UserForm extends React.Component {
         super(props);
 
         this.state = {
-            userId: UID,
+            userId: "",
             userCookie: "",
             dateRangeOption: "this_year",
         };
