@@ -1,4 +1,5 @@
 "use client";
+import "./page.css";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,7 +18,7 @@ type DateRangeOption = keyof DateRangeOptions;
 
 export default function Home() {
   return (
-    <main>
+    <main className="Home">
         <UserForm/>
     </main>
   )
@@ -97,7 +98,7 @@ function UserForm() {
                         >
                             {
                                 Object.keys(DateRangeOptions).map(key =>
-                                    <option value={key}>{DateRangeOptions[key]}</option>
+                                    <option key={key} value={key}>{DateRangeOptions[key]}</option>
                                 )
                             }
                         </select>

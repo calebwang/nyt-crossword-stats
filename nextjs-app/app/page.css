@@ -1,0 +1,67 @@
+.Home {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.UserForm {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    flex: 1 0 auto;
+    justify-content: center;
+    min-width: 1200px;
+    background: #ADD8E6;
+    margin-bottom: 10px;
+}
+
+.UserForm-header {
+    font-size: 32px;
+}
+
+.UserForm-instructions {}
+.UserForm-instructionsHeader {
+    font-size: 20px;
+}
+.UserForm-form {
+    display: flex;
+    flex-direction: column;
+    align-items: right;
+}
+
+.UserForm-fields {
+    display: flex;
+    justify-content: space-around;
+}
+
+.UserForm-label {
+    margin-right: 10px;
+    margin-bottom: 5px;
+}
+
+.UserForm-submitButton {
+    flex: 0 1 auto;
+    align-self: flex-end;
+    margin: 10px;
+}
+
+#UserForm-userIdInput {
+}
+
+#UserForm-userCookieInput {
+    min-height: 150px;
+    min-width: 500px;
+}
+
+.UserForm-fieldInput {
+    min-width: 100px;
+    height: 25px;
+}
+
+.UserForm-field {
+    display: flex;
+    flex-direction: column;
+    margin: 5px 10px 5px;
+}
+
+
