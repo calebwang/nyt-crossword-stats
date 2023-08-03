@@ -2,6 +2,7 @@
 import "./page.css";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import * as React from "react";
 import { useState } from "react";
 
 
@@ -13,7 +14,7 @@ const DateRangeOptions = {
     "last_60": "Last 5 years",
 }
 
-type DateRangeOption = keyof DateRangeOptions;
+type DateRangeOption = keyof typeof DateRangeOptions;
 
 
 export default function Home() {
@@ -36,12 +37,12 @@ function UserForm() {
         );
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         submit();
     };
 
-    const handleFormKeyPress = (e) => {
+    const handleFormKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.charCode === 13) {
             submit();
             e.preventDefault();
@@ -83,7 +84,6 @@ function UserForm() {
                         <input
                             className="UserForm-fieldInput"
                             id="UserForm-userIdInput"
-                            type="text"
                             value={userId}
                             onChange={e => setUserId(e.target.value)}
                         />
@@ -94,11 +94,13 @@ function UserForm() {
                             id="UserForm-dateRangeInput"
                             className="UserForm-fieldInput"
                             value={dateRangeOption}
-                            onChange={e => setDateRangeOption(e.target.value)}
+                            onChange={e => setDateRangeOption(e.target.value as DateRangeOption)}
                         >
                             {
-                                Object.keys(DateRangeOptions).map(key =>
-                                    <option key={key} value={key}>{DateRangeOptions[key]}</option>
+                                (Object.keys(DateRangeOptions) as Array<DateRangeOption>).map(key =>
+                                    <option key={key} value={key}>
+                                        {DateRangeOptions[key]}
+                                    </option>
                                 )
                             }
                         </select>
@@ -108,7 +110,6 @@ function UserForm() {
                         <textarea
                             className="UserForm-fieldInput"
                             id="UserForm-userCookieInput"
-                            type="text"
                             value={userCookie}
                             onChange={e => setUserCookie(e.target.value)}
                             onKeyPress={handleFormKeyPress}
