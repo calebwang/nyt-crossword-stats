@@ -1,5 +1,19 @@
-import Image from 'next/image'
-import { useRouter } from 'next/router'
+"use client";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+
+const DateRangeOptions = {
+    "this_year": "This year",
+    "last_year": "Last year",
+    "last_3": "Last 3 months",
+    "last_24": "Last 2 years",
+    "last_60": "Last 5 years",
+}
+
+type DateRangeOption = keyof DateRangeOptions;
+
 
 export default function Home() {
   return (
@@ -11,15 +25,14 @@ export default function Home() {
 
 function UserForm() {
     const router = useRouter();
-    const [userId, setUserId] = useState(null);
-    const [userCookie, setUserCookie] = useState(null);
-    const [dateRangeOption, setDateRangeOption] = useState(null);
+    const [userId, setUserId] = useState("");
+    const [userCookie, setUserCookie] = useState("");
+    const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>("this_year");
 
     const submit = () => {
-        router.push({
-            pathname: '/visualize',
-            query: {q: `userId=${userId}&userCookie=${userCookie}&defaultDateRange=${dateRangeOption}`},
-       });
+        router.push(
+            `/visualize?userId=${userId}&userCookie=${userCookie}&defaultDateRangeOption=${dateRangeOption}`
+        );
     };
 
     const handleSubmit = (e) => {
@@ -33,6 +46,7 @@ function UserForm() {
             e.preventDefault();
         }
     };
+
 
     return (
         <div className="UserForm">
@@ -65,21 +79,39 @@ function UserForm() {
             <form className="UserForm-form" onSubmit={handleSubmit}> <div className="UserForm-fields">
                     <div id="UserForm-userId" className="UserForm-field">
                         <label className="UserForm-label">User ID</label>
-                        <input className="UserForm-fieldInput" id="UserForm-userIdInput" type="text" value={userId} onChange={setUserId} />
+                        <input
+                            className="UserForm-fieldInput"
+                            id="UserForm-userIdInput"
+                            type="text"
+                            value={userId}
+                            onChange={e => setUserId(e.target.value)}
+                        />
                     </div>
                     <div id="UserForm-dateRange" className="UserForm-field">
                         <label className="UserForm-label">Date Range</label>
-                        <select name="dateRange" id="UserForm-dateRangeInput" className="UserForm-fieldInput" value={dateRangeOption} onChange={setDateRangeOption}>
-                            <option value="this_year">This year</option>
-                            <option value="last_year">Last year</option>
-                            <option value="last_3">Last 3 months</option>
-                            <option value="last_12">Last 12 months</option> <option value="last_24">Last 2 years</option>
-                            <option value="last_60">Last 5 years</option>
+                        <select name="dateRange"
+                            id="UserForm-dateRangeInput"
+                            className="UserForm-fieldInput"
+                            value={dateRangeOption}
+                            onChange={e => setDateRangeOption(e.target.value)}
+                        >
+                            {
+                                Object.keys(DateRangeOptions).map(key =>
+                                    <option value={key}>{DateRangeOptions[key]}</option>
+                                )
+                            }
                         </select>
                     </div>
                     <div id="UserForm-userCookie" className="UserForm-field">
                         <label className="UserForm-label">NYT-S Cookie</label>
-                        <textarea className="UserForm-fieldInput" id="UserForm-userCookieInput" type="text" value={userCookie} onChange={setUserCookie} onKeyPress={handleKeyPress} ref={userCookieInputRef}/>
+                        <textarea
+                            className="UserForm-fieldInput"
+                            id="UserForm-userCookieInput"
+                            type="text"
+                            value={userCookie}
+                            onChange={e => setUserCookie(e.target.value)}
+                            onKeyPress={handleFormKeyPress}
+                        />
                     </div>
                 </div>
                 <input className="UserForm-submitButton" type="submit"/>
