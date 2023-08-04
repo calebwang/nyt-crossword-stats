@@ -86,24 +86,24 @@ export function useDataLoader(userId: string, userCookie: string, initialStartDa
     const [loaded, setLoaded] = useState(false);
     const [result, setResult] = useState({});
     const [progress, setProgress] = useState("");
-    const [numRequests, setNumRequests] = useState(0);
-    const [numPendingRequests, setNumPendingRequests] = useState(0);
+
     const data = useRef({});
-    const init = useRef(false);
 
     useEffect(() => {
-        if (!init.current) {
+        const [startYear, startMonth] = [startDate.getFullYear(), startDate.getMonth()];
+        const [currentYear, currentMonth] = [endDate.getFullYear(), endDate.getMonth()];
+        const months = monthsRange(startYear, startMonth, currentYear, currentMonth);
+
+        const shouldFetch = months.some(([year, month]) => {
+            const monthStr = formatDate(new Date(year, month, 1));
+            return data.current[monthStr] === undefined;
+        });
+
+        if (shouldFetch) {
+            setLoaded(false);
             fetch();
-            init.current = true;
         }
     });
-
-    useEffect(() => {
-        if (numPendingRequests === 0 && numRequests > 0) {
-            setLoaded(true);
-        }
-    });
-
 
     function fetch() {
         const [startYear, startMonth] = [startDate.getFullYear(), startDate.getMonth()];
@@ -120,14 +120,15 @@ export function useDataLoader(userId: string, userCookie: string, initialStartDa
         months.forEach(yearAndMonth => {
             const [year, month] = yearAndMonth;
             const date = new Date(year, month, 1)
+            const dateStr = formatDate(date);
             // If we already have data for the 1st day of the month, assume we have everything.
-            if (data.current[formatDate(date)] === undefined) {
+            if (data.current[dateStr] === undefined) {
+                data.current[dateStr] = "loading";
                 monthDataRequestPool.addRequest(() => fetchMonth(year, month));
             }
         });
         monthDataRequestPool.start();
         monthDataRequestPool.poll().then(results => {
-            console.log(results);
             results.filter(result => result.results !== null).forEach(result => processMonthData(result));
             setProgress("loading puzzles");
             fetchPuzzles();
@@ -186,7 +187,6 @@ export function useDataLoader(userId: string, userCookie: string, initialStartDa
             });
 
             const processedData = Object.values(data.current).map(puzzleData => new Puzzle(puzzleData).blob());
-
             setLoaded(true);
             setResult(processedData);
         });

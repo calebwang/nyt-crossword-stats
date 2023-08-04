@@ -49,7 +49,7 @@ export default function Visualize() {
         userId, userCookie, initialStartDate, initialEndDate);
     return <div>
         {JSON.stringify(result)}
-        {loaded}
+        {loaded ? "loaded" : "not_loaded"}
         {progress}
     </div>
 }
