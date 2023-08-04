@@ -5,8 +5,7 @@ type PuzzleData = {
     puzzle_id: string;
     print_date: string;
     firsts?: {
-        checked: number;
-        solved: number;
+        checked: number; solved: number;
     }
     solved: boolean;
     calcs?: {
@@ -80,9 +79,7 @@ class Puzzle {
 const ARCHIVE_URL = "/api/archive?userId={userId}&userCookie={userCookie}&startDate={startDate}&endDate={endDate}";
 const PUZZLE_URL = "/api/puzzle?userId={userId}&userCookie={userCookie}&puzzleId={puzzleId}";
 
-export function useDataLoader(userId: string, userCookie: string, initialStartDate: Date, initialEndDate: Date) {
-    const [startDate, setStartDate] = useState(initialStartDate);
-    const [endDate, setEndDate] = useState(initialEndDate);
+export function useDataLoader(userId: string, userCookie: string, startDate: Date, endDate: Date) {
     const [loaded, setLoaded] = useState(false);
     const [result, setResult] = useState({});
     const [progress, setProgress] = useState("");
@@ -205,6 +202,6 @@ export function useDataLoader(userId: string, userCookie: string, initialStartDa
             .then(json => [puzzleDate, json]);
     }
 
-    return [result, loaded, progress, startDate, endDate, setStartDate, setEndDate];
+    return [result, loaded, progress];
 }
 

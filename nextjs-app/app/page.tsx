@@ -4,17 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useState } from "react";
-
-
-const DateRangeOptions = {
-    "this_year": "This year",
-    "last_year": "Last year",
-    "last_3": "Last 3 months",
-    "last_24": "Last 2 years",
-    "last_60": "Last 5 years",
-}
-
-type DateRangeOption = keyof typeof DateRangeOptions;
+import { DatePicker, DateRangeOption } from "app/components/datePicker";
 
 
 export default function Home() {
@@ -90,20 +80,12 @@ function UserForm() {
                     </div>
                     <div id="UserForm-dateRange" className="UserForm-field">
                         <label className="UserForm-label">Date Range</label>
-                        <select name="dateRange"
+                        <DatePicker
                             id="UserForm-dateRangeInput"
                             className="UserForm-fieldInput"
                             value={dateRangeOption}
-                            onChange={e => setDateRangeOption(e.target.value as DateRangeOption)}
-                        >
-                            {
-                                (Object.keys(DateRangeOptions) as Array<DateRangeOption>).map(key =>
-                                    <option key={key} value={key}>
-                                        {DateRangeOptions[key]}
-                                    </option>
-                                )
-                            }
-                        </select>
+                            onChange={setDateRangeOption}
+                        />
                     </div>
                     <div id="UserForm-userCookie" className="UserForm-field">
                         <label className="UserForm-label">NYT-S Cookie</label>

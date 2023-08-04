@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useDataLoader } from "../utils/dataLoader";
 import { DateRangeOption } from "../page";
 import { range, formatTime, MovingWindow, monthStartAndEnd, addMonths } from "app/utils/utils";
+import { DatePicker } from "app/components/datePicker";
 
 import * as dc from "dc";
 import * as crossfilter from "crossfilter2";
@@ -48,11 +49,12 @@ export default function Visualize() {
     const queryParams = useSearchParams();
     const userId = queryParams.get("userId");
     const userCookie = queryParams.get("userCookie");
-    const dateRangeOption = queryParams.get("initialDateRangeOption");
-    const [initialStartDate, initialEndDate] = getDateRangeFromOption(dateRangeOption);
+    const initialDateRangeOption = queryParams.get("initialDateRangeOption");
+    const [dateRangeOption, setDateRangeOption] = useState(initialDateRangeOption);
+    const [startDate, endDate] = getDateRangeFromOption(dateRangeOption);
 
-    const [result, loaded, progress, startDate, endDate, setStartDate, setEndDate] = useDataLoader(
-        userId, userCookie, initialStartDate, initialEndDate);
+    const [result, loaded, progress] = useDataLoader(
+        userId, userCookie, startDate, endDate);
 
     const [params, setParams] = useState<DrawParams>({
         maxDisplayedCompletionTime: 60,
@@ -78,6 +80,11 @@ export default function Visualize() {
 
     return (
         <div className="DataVisualizer">
+            <DatePicker
+                className="DataVisualizer-datePicker"
+                value={dateRangeOption}
+                onChange={setDateRangeOption}
+            />
             <div className="DataVisualizer-charts">
                 <div id="DataVisualizer-col1" className="DataVisualizer-col">
                     <ChartSection title="Average completion time over time (minutes, smoothed)" chartId="solveTimeOverTimeChart" />

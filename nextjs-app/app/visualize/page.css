@@ -6,6 +6,10 @@
     align-items: center;
 }
 
+.DataVisualizer-datePicker {
+    align-self: flex-end;
+}
+
 .DataVisualizer-row1 {
     margin-top: 10px;
     display: flex;
