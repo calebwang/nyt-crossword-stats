@@ -205,6 +205,6 @@ export function useDataLoader(userId: string, userCookie: string, initialStartDa
             .then(json => [puzzleDate, json]);
     }
 
-    return [result, loaded, progress, setStartDate, setEndDate];
+    return [result, loaded, progress, startDate, endDate, setStartDate, setEndDate];
 }
 
