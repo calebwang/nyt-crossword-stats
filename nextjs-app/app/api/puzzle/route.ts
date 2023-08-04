@@ -9,7 +9,7 @@ export async function GET(request: Request) {
         puzzleId: searchParams.get("puzzleId")
     });
     const headers = { "nyt-s": searchParams.get("userCookie") };
-    const response = await fetch(url, { headers: headers });
+    const response = await fetch(url, { headers: headers, cache: "force-cache" });
     const jsonResponse = await response.json();
 
     return NextResponse.json(jsonResponse);

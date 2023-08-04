@@ -111,7 +111,7 @@ export function useDataLoader(userId: string, userCookie: string, initialStartDa
         const months = monthsRange(startYear, startMonth, currentYear, currentMonth);
 
         const monthDataRequestPool = new RequestPool(
-            20,
+            50,
             (numCompleted, numTotal) => {
                 setProgress(`${numCompleted} of ${numTotal} months loaded`);
             },
@@ -156,7 +156,7 @@ export function useDataLoader(userId: string, userCookie: string, initialStartDa
 
     function fetchPuzzles() {
         const puzzleRequestPool = new RequestPool(
-            20,
+            50,
             (numCompleted, numTotal) => {
                 setProgress(`${numCompleted} of ${numTotal} puzzles loaded`)
             },
