@@ -33,7 +33,7 @@ function UserForm() {
 
     const submit = () => {
         router.push(
-            `/visualize?userId=${userId}&userCookie=${userCookie}&defaultDateRangeOption=${dateRangeOption}`
+            `/visualize?userId=${userId}&userCookie=${userCookie}&initialDateRangeOption=${dateRangeOption}`
         );
     };
 
