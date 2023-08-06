@@ -1,28 +1,27 @@
-export function interpolate(str, params) {
+export function interpolate(str: string, params: Record<string, string>): string {
     return str.replace(/\{(\w+?)\}/g, (match, key) => {
         return params[key];
     })
 }
 
-export function monthStartAndEnd(year, month) {
+export function monthStartAndEnd(year: number, month: number) {
     const start = new Date(year, month, 1);
     const end = new Date(year, month+1, 0);
     return [start, end];
 }
 
-export function addMonths(year, month, numMonths) {
+export function addMonths(year: number, month: number, numMonths: number) {
     const resultDate = new Date(year, month + numMonths, 1);
     return [resultDate.getFullYear(), resultDate.getMonth()];
 }
 
 // Sigh: When creating Dates from a string like "2020-01-01", the result is UTC midnight
 // but this may be a different day in the local timezone.
-export function localMidnightDateFromString(str) {
-    const d = new Date(str);
+export function localMidnightDateFromString(str: string) { const d = new Date(str);
     return new Date(d.getTime() + d.getTimezoneOffset() * 60 * 1000);
 }
 
-export function monthsRange(startYear, startMonth, endYear, endMonth) {
+export function monthsRange(startYear: number, startMonth: number, endYear: number, endMonth: number) {
     const result = [];
     const endDate = new Date(endYear, endMonth);
     let currentDate = new Date(startYear, startMonth);
@@ -33,18 +32,18 @@ export function monthsRange(startYear, startMonth, endYear, endMonth) {
     return result;
 }
 
-export function formatDate(d) {
+export function formatDate(d: Date) {
     return d.toISOString().split("T")[0];
 }
 
-export function formatTime(seconds) {
+export function formatTime(seconds: number) {
     const minutes = Math.floor(seconds / 60);
     const secondsLeft = Math.floor(seconds - minutes * 60);
     const secondsString = secondsLeft < 10 ? "0" + secondsLeft : secondsLeft;
     return `${minutes}:${secondsString}`;
 }
 
-export function range(start, end, incr) {
+export function range(start: number, end: number, incr: number) {
     const result = [];
     let curr = start;
     while (curr <= end) {
@@ -54,14 +53,18 @@ export function range(start, end, incr) {
     return result;
 }
 
-export class MovingWindow {
-    constructor(size) {
+export class MovingWindow<T> {
+    _items: T[];
+    size: number;
+    nextIndex: number;
+
+    constructor(size: number) {
         this._items = [];
         this.size = size;
         this.nextIndex = 0;
     }
 
-    add(item) {
+    add(item: T) {
         if (this._items.length < this.size) {
             this._items.push(item);
         } else {
@@ -70,13 +73,13 @@ export class MovingWindow {
         this.nextIndex = (this.nextIndex + 1) % this.size;
     }
 
-    items() {
+    items(): T[] {
         return this._items;
     }
 }
 
 export class RequestPool {
-    constructor(size, onRequestComplete) {
+    constructor(size: number, onRequestComplete: () => void) {
         this.size = size;
         this.runningCount = 0;
         this.queue = [];
@@ -145,6 +148,4 @@ export class RequestPool {
             this.executeRequest(nextRequest);
         }
     }
-
-
 }
