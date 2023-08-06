@@ -20,7 +20,6 @@ export function addMonths(year: number, month: number, numMonths: number) {
 export function localMidnightDateFromString(str: string) { const d = new Date(str);
     return new Date(d.getTime() + d.getTimezoneOffset() * 60 * 1000);
 }
-
 export function monthsRange(startYear: number, startMonth: number, endYear: number, endMonth: number) {
     const result = [];
     const endDate = new Date(endYear, endMonth);
@@ -78,8 +77,19 @@ export class MovingWindow<T> {
     }
 }
 
-export class RequestPool {
-    constructor(size: number, onRequestComplete: () => void) {
+export class RequestPool<T> {
+    results: T[];
+    onRequestComplete: (completed: number, total: number) => void;
+
+    size: number;
+    queue: Array<() => Promise<T>>;
+
+    numRequests: number;
+    runningCount: number;
+    onRequestsComplete: (results: T[]) => void;
+    started: boolean;
+
+    constructor(size: number, onRequestComplete: (completed: number, total: number) => void) {
         this.size = size;
         this.runningCount = 0;
         this.queue = [];
@@ -91,7 +101,7 @@ export class RequestPool {
         this.numRequests = 0;
     }
 
-    addRequest(requestFn) {
+    addRequest(requestFn: () => Promise<T>) {
         if (this.started) {
             throw new Error("Pool already started");
         }
@@ -107,13 +117,15 @@ export class RequestPool {
 
         this.started = true;
         // JS is single threaded
-        for (let i = 0; i < this.size && i < this.numRequests; i++) {
-            const request = this.queue.pop(0);
+        let i = 0;
+        while (i < this.size && i < this.numRequests) {
+            const request = this.queue.shift() as () => Promise<T>;
             this.executeRequest(request);
+            i++;
         }
     }
 
-    poll() {
+    poll(): Promise<T[]> {
         if (!this.started) {
             throw new Error("Not started");
         }
@@ -128,7 +140,7 @@ export class RequestPool {
         });
     }
 
-    executeRequest(requestFn) {
+    executeRequest(requestFn: () => Promise<T>) {
         this.runningCount++;
         requestFn().then(result => {
             this.results.push(result);
@@ -144,8 +156,16 @@ export class RequestPool {
         }
 
         if (this.runningCount < this.size && this.queue.length > 0) {
-            const nextRequest = this.queue.pop(0);
+            const nextRequest = this.queue.shift() as () => Promise<T>;
             this.executeRequest(nextRequest);
         }
     }
+}
+
+export type LoadingResult<T> = T | "loading";
+export function isLoading<T>(r: LoadingResult<T>): boolean {
+    return r === "loading";
+}
+export function isResult<T>(r: LoadingResult<T>): r is T {
+    return r && r !== "loading";
 }
