@@ -40,17 +40,15 @@ function getDateRangeFromOption(dateRangeOption: DateRangeOption): [Date, Date] 
             const sixtyMonthsAgo = new Date(sixtyMonthsAgoYear, sixtyMonthsAgoMonth);
             return [sixtyMonthsAgo, monthEnd];
     }
-
-    return [null, null];
 }
 
 
 
 export default function Visualize() {
     const queryParams = useSearchParams();
-    const userId = queryParams.get("userId");
-    const userCookie = queryParams.get("userCookie");
-    const initialDateRangeOption = queryParams.get("initialDateRangeOption");
+    const userId = queryParams.get("userId") as string;
+    const userCookie = queryParams.get("userCookie") as string;
+    const initialDateRangeOption = queryParams.get("initialDateRangeOption") as DateRangeOption;
     const [dateRangeOption, setDateRangeOption] = useState(initialDateRangeOption);
     const [startDate, endDate] = getDateRangeFromOption(dateRangeOption);
 
@@ -105,13 +103,16 @@ export default function Visualize() {
 }
 
 type DrawParams = {
-    useSolveDate: boolean,
+    maxDisplayedCompletionTime: number;
+    movingAverageWindowSize: number;
+    distributionBucketSize: number;
+    useSolveDate: boolean;
 }
 
 function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
-    const ndx = crossfilter(data);
+    const ndx: any = (crossfilter as any)(data);
 
-    function getStatus(d) {
+    function getStatus(d: any) {
         if (d.solved) {
             return "Solved";
         } else if (d.attempted) {
@@ -121,13 +122,13 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
         }
     }
 
-    const weekDimension = ndx.dimension(d => {
+    const weekDimension = ndx.dimension((d: any) => {
         const date = params.useSolveDate ? d.solveDate : d.date;
         return d3.timeWeek.floor(new Date(date))
     });
 
     const countByWeekAndStatusGroup = weekDimension.group().reduce(
-        (group, puzzleData) => {
+        (group: any, puzzleData: any) => {
             if (puzzleData.solved) {
                 group.solved += 1;
             } else if (puzzleData.attempted) {
@@ -137,7 +138,7 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
             }
             return group;
         },
-        (group, puzzleData) => {
+        (group: any, puzzleData: any) => {
             if (puzzleData.solved) {
                 group.solved -= 1;
             } else if (puzzleData.attempted) {
@@ -155,18 +156,18 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
     );
     const dateChart = dc.barChart("#DataVisualizer-dateChart");
 
-    dateChart
+    (dateChart
         .width(1000)
         .height(150)
         .margins({ left: 100, right: 50, top: 5, bottom: 30 })
         .dimension(weekDimension)
-        .group(countByWeekAndStatusGroup, "Solved", group => group.value.solved)
-        .stack(countByWeekAndStatusGroup, "In Progress", group => group.value.attempted)
-        .stack(countByWeekAndStatusGroup, "Not Started", group => group.value.not_started)
         .elasticY(true)
         .x(d3.scaleTime().domain([startDate.getTime(), endDate.getTime()]))
-        .round(d3.timeWeek.floor)
-        .xUnits(d3.timeWeeks);
+        .round(d3.timeWeek.floor) as any)
+        .xUnits(d3.timeWeeks)
+        .group(countByWeekAndStatusGroup, "Solved", (group: any) => group.value.solved)
+        .stack(countByWeekAndStatusGroup, "In Progress", (group: any) => group.value.attempted)
+        .stack(countByWeekAndStatusGroup, "Not Started", (group: any) => group.value.not_started);
 
     dateChart.legend(dc.legend());
     dateChart.render();
@@ -174,7 +175,7 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
 
     // Shares a reducer with solveTimeByDayGroup
     const solveTimeByWeekGroup = weekDimension.group().reduce(
-        (group, d) => {
+        (group: any, d: any) => {
             if (d.solved) {
                 group.totalTime += d.solveTime;
                 group.numSolved++;
@@ -182,7 +183,7 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
             }
             return group;
         },
-        (group, d) => {
+        (group: any, d: any) => {
             if (d.solved) {
                 group.totalTime -= d.solveTime;
                 group.numSolved--;
@@ -197,18 +198,18 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
         })
     );
 
-    function averageSolveTimeOverTimeGrouper(sourceGroup) {
+    function averageSolveTimeOverTimeGrouper(sourceGroup: any) {
         return {
             all: () => {
                 const movingWindow = new MovingWindow(params.movingAverageWindowSize);
-                return sourceGroup.all().map(g => {
+                return sourceGroup.all().map((g: any) => {
                     // Skip weeks with no solve data
                     if (g.value.numSolved > 0) {
                         movingWindow.add(g.value);
                     }
 
-                    const windowTotals = movingWindow.items().reduce(
-                        (acc, groupValue) => {
+                    const windowTotals: any = movingWindow.items().reduce(
+                        (acc: any, groupValue: any) => {
                             acc.totalTime += groupValue.totalTime;
                             acc.numSolved += groupValue.numSolved;
                             return acc;
@@ -227,8 +228,8 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
     }
     const averageSolveTimeOverTimeGroup = averageSolveTimeOverTimeGrouper(solveTimeByWeekGroup);
 
-    const solveTimeOverTimeChart = new dc.LineChart("#DataVisualizer-solveTimeOverTimeChart");
-    solveTimeOverTimeChart
+    const solveTimeOverTimeChart = dc.lineChart("#DataVisualizer-solveTimeOverTimeChart");
+    (solveTimeOverTimeChart
         .width(1000)
         .height(400)
         .margins({ left: 30, right: 50, top: 10, bottom: 30 })
@@ -237,27 +238,27 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
         .rangeChart(dateChart)
         .brushOn(false)
         .mouseZoomable(true)
-        .curve(d3.curveCatmullRom.alpha(0.5))
         .x(d3.scaleTime().domain([startDate.getTime(), endDate.getTime()]))
-        .round(d3.timeWeek.floor)
+        .round(d3.timeWeek.floor) as any)
         .xUnits(d3.timeWeeks)
         .elasticY(true)
-        .yAxisPadding(60);
+        .yAxisPadding(60)
+        .curve(d3.curveCatmullRom.alpha(0.5));
 
-    solveTimeOverTimeChart
+    (solveTimeOverTimeChart as any)
         .yAxis()
         .tickValues(range(0, 90, 5).map(m => m * 60))
-        .tickFormat(v => Math.floor(v / 60));
+        .tickFormat((v: any) => Math.floor(v / 60));
 
     solveTimeOverTimeChart.render();
 
-    const solveTimeDimension = ndx.dimension(d => {
+    const solveTimeDimension = ndx.dimension((d: any) => {
         return d.solved ? Math.floor(d.solveTime / 60) : -1;
     });
-    const solveTimeGroup = solveTimeDimension.group(value => {
+    const solveTimeGroup = solveTimeDimension.group((value: any) => {
         return Math.floor(value / params.distributionBucketSize) * params.distributionBucketSize;
     });
-    const solveTimeChart = new dc.BarChart("#DataVisualizer-timeDistributionChart");
+    const solveTimeChart = dc.barChart("#DataVisualizer-timeDistributionChart");
 
     solveTimeChart
         .width(1000)
@@ -275,18 +276,18 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
 
 
     // # Render Column 2
-    const dayDimension = ndx.dimension(d => d.day);
+    const dayDimension = ndx.dimension((d: any) => d.day);
     const dayGroup = dayDimension.group();
 
     const daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
     const daysOfWeekLabels = ["Su", "M", "Tu", "W", "Th", "Fr", "Sa"];
-    const dayChart = new dc.PieChart("#DataVisualizer-dayChart");
+    const dayChart = dc.pieChart("#DataVisualizer-dayChart");
     dayChart
         .width(200)
         .height(200)
         .dimension(dayDimension)
         .group(dayGroup)
-        .label(d => `${daysOfWeekLabels[d.key]} (${d.value})`);
+        .label((d: any) => `${daysOfWeekLabels[d.key]} (${d.value})`);
 
     dayChart.render();
 
@@ -294,20 +295,20 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
     const statusDimension = ndx.dimension(getStatus);
     const statusGroup = statusDimension.group();
 
-    const statusChart = new dc.PieChart("#DataVisualizer-statusChart");
+    const statusChart = dc.pieChart("#DataVisualizer-statusChart");
     statusChart
         .width(200)
         .height(200)
         .dimension(statusDimension)
         .group(statusGroup)
-        .label(d => `${d.key} (${d.value})`);
+        .label((d: any) => `${d.key} (${d.value})`);
 
     statusChart.render();
 
 
-    const dayDimension2 = ndx.dimension(d => d.day);
+    const dayDimension2 = ndx.dimension((d: any) => d.day);
     const solveRateByDayGroup = dayDimension2.group().reduce(
-        (group, d) => {
+        (group: any, d: any) => {
             if (d.solved) {
                 group.solved++;
             }
@@ -315,7 +316,7 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
             group.solvePct = Math.round(100 * group.solved / group.total);
             return group;
         },
-        (group, d) => {
+        (group: any, d: any) => {
             if (d.solved) {
                 group.solved--;
             }
@@ -330,7 +331,7 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
         })
     );
 
-    const solveRateChart = new dc.RowChart("#DataVisualizer-solveRateChart");
+    const solveRateChart = dc.rowChart("#DataVisualizer-solveRateChart");
     solveRateChart
         .width(220)
         .height(230)
@@ -338,11 +339,11 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
         .dimension(dayDimension2)
         .group(solveRateByDayGroup)
         .valueAccessor(g => g.value.solvePct)
-        .label(d => `${daysOfWeekLabels[d.key]} (${d.value.solvePct}%)`);
+        .label((d: any) => `${daysOfWeekLabels[d.key]} (${d.value.solvePct}%)`);
     solveRateChart.render();
 
     const solveTimeByDayGroup = dayDimension2.group().reduce(
-        (group, d) => {
+        (group: any, d: any) => {
             if (d.solved) {
                 group.totalTime += d.solveTime;
                 group.numSolved++;
@@ -350,7 +351,7 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
             }
             return group;
         },
-        (group, d) => {
+        (group: any, d: any) => {
             if (d.solved) {
                 group.totalTime -= d.solveTime;
                 group.numSolved--;
@@ -364,7 +365,7 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
             avgTime: 0,
         })
     );
-    const solveTimeByDayChart = new dc.RowChart("#DataVisualizer-solveTimeChart");
+    const solveTimeByDayChart = dc.rowChart("#DataVisualizer-solveTimeChart");
     solveTimeByDayChart
         .width(220)
         .height(230)
@@ -373,29 +374,29 @@ function draw(data: any, startDate: Date, endDate: Date, params: DrawParams) {
         .dimension(dayDimension2)
         .group(solveTimeByDayGroup)
         .valueAccessor(g => g.value.avgTime)
-        .label(d => `${daysOfWeekLabels[d.key]} (${formatTime(d.value.avgTime)})`);
+        .label((d: any) => `${daysOfWeekLabels[d.key]} (${formatTime(d.value.avgTime)})`);
 
-    solveTimeByDayChart
+    (solveTimeByDayChart
         .xAxis()
         .ticks(4)
-        .tickValues(range(0, params.maxDisplayedCompletionTime, 15).map(m => m * 60))
-        .tickFormat(v => Math.floor(v/60));
+        .tickValues(range(0, params.maxDisplayedCompletionTime, 15).map(m => m * 60)) as any)
+        .tickFormat((v: any) => Math.floor(v/60));
     solveTimeByDayChart.render();
 
-    const dateDimension = ndx.dimension(d => {
+    const dateDimension = ndx.dimension((d: any) => {
         const date = params.useSolveDate ? d.solveDate : d.date;
         return d3.timeDay.floor(new Date(date))
     });
 
-    const table = new dc.DataTable("#DataVisualizer-dataTable");
+    const table = dc.dataTable("#DataVisualizer-dataTable");
     table
         .dimension(dateDimension)
         .size(100)
         .columns([
             "date",
             "solveDate",
-            { label: "Day", format: d => daysOfWeekLabels[d.day] },
-            { label: "Status", format: d => getStatus(d) },
+            { label: "Day", format: (d: any) => daysOfWeekLabels[d.day] },
+            { label: "Status", format: (d: any) => getStatus(d) },
             "solveTime",
         ])
         .on("renderlet", table => {

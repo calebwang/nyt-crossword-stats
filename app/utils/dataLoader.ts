@@ -1,22 +1,54 @@
 import { useState, useEffect, useRef } from "react";
 
 import { localMidnightDateFromString, interpolate, monthsRange, monthStartAndEnd, formatDate, RequestPool } from "utils/utils";
+import { LoadingResult, isResult } from "utils/utils";
 
-type PuzzleData = {
+type BasePuzzleData = {
     puzzle_id: string;
     print_date: string;
-    firsts?: {
-        checked: number; solved: number;
-    }
     solved: boolean;
-    calcs?: {
-        secondsSpentSolving: number; }
+    percent_filled: number;
+
+    calcs: undefined;
+    firsts: undefined;
 }
 
-class Puzzle {
-    data: PuzzleData;
+type SolvedPuzzleData = {
+    puzzle_id: string;
+    print_date: string;
 
-    constructor(data: PuzzleData) {
+    firsts: {
+        checked?: number;
+        solved: number;
+    }
+    percent_filled: number;
+    solved: true;
+    calcs: {
+        secondsSpentSolving: number;
+    }
+
+}
+
+type UnsolvedPuzzleData = {
+    puzzle_id: string;
+    print_date: string;
+
+    solved: false;
+    percent_filled: number;
+    firsts?: {
+        checked?: number;
+    }
+    calcs?: {};
+}
+
+type PuzzleData = BasePuzzleData | SolvedPuzzleData | UnsolvedPuzzleData;
+type LoadedPuzzleData = SolvedPuzzleData | UnsolvedPuzzleData;
+
+
+class Puzzle<S extends LoadedPuzzleData> {
+    data: S;
+
+    constructor(data: S) {
         this.data = data;
     }
 
@@ -53,23 +85,23 @@ class Puzzle {
         return this.data.firsts !== undefined;
     }
 
-    solved() {
+    solved(): this is Puzzle<SolvedPuzzleData> {
         return this.data.solved;
     }
 
     cleanlySolved() {
-        return this.solved() && this.data.firsts.checked === undefined;
+        return this.solved() && this.data.firsts?.checked === undefined;
     }
 
     solveTime(): number | null {
         // Sanitize NYT data problems
-        if (this.solved() && this.data.calcs.secondsSpentSolving !== undefined) {
-            return this.data.calcs.secondsSpentSolving;
+        if (this.solved() && this.data.calcs?.secondsSpentSolving !== undefined) {
+            return this.data.calcs?.secondsSpentSolving;
         }
         return null;
     }
 
-    solveDate(): number | null {
+    solveDate(): string | null {
         if (this.solved()) {
             return formatDate(new Date(this.data.firsts.solved * 1000));
         }
@@ -80,12 +112,12 @@ class Puzzle {
 const ARCHIVE_URL = "/api/archive?userId={userId}&userCookie={userCookie}&startDate={startDate}&endDate={endDate}";
 const PUZZLE_URL = "/api/puzzle?userId={userId}&userCookie={userCookie}&puzzleId={puzzleId}";
 
-export function useDataLoader(userId: string, userCookie: string, startDate: Date, endDate: Date) {
-    const [loaded, setLoaded] = useState(false);
+export function useDataLoader(userId: string, userCookie: string, startDate: Date, endDate: Date): [any, boolean, string] {
     const [result, setResult] = useState({});
+    const [loaded, setLoaded] = useState(false);
     const [progress, setProgress] = useState("");
 
-    const data = useRef({});
+    const data = useRef<Record<string, LoadingResult<PuzzleData>>>({});
 
     useEffect(() => {
         const [startYear, startMonth] = [startDate.getFullYear(), startDate.getMonth()];
@@ -108,7 +140,7 @@ export function useDataLoader(userId: string, userCookie: string, startDate: Dat
         const [currentYear, currentMonth] = [endDate.getFullYear(), endDate.getMonth()];
         const months = monthsRange(startYear, startMonth, currentYear, currentMonth);
 
-        const monthDataRequestPool = new RequestPool(
+        const monthDataRequestPool = new RequestPool<{ results: PuzzleData[] }>(
             50,
             (numCompleted, numTotal) => {
                 setProgress(`${numCompleted} of ${numTotal} months loaded`);
@@ -133,7 +165,7 @@ export function useDataLoader(userId: string, userCookie: string, startDate: Dat
         });
     }
 
-    function fetchMonth(year, month) {
+    function fetchMonth(year: number, month: number) {
         const [monthStart, monthEnd] = monthStartAndEnd(year, month);
         return window.fetch(
             interpolate(ARCHIVE_URL, {
@@ -146,14 +178,14 @@ export function useDataLoader(userId: string, userCookie: string, startDate: Dat
             .then(response => response.json());
     }
 
-    function processMonthData(monthResult) {
+    function processMonthData(monthResult: { results: PuzzleData[] }) {
         monthResult.results.forEach(puzzleData => {
             data.current[puzzleData.print_date] = puzzleData;
         });
     }
 
     function fetchPuzzles() {
-        const puzzleRequestPool = new RequestPool(
+        const puzzleRequestPool = new RequestPool<[string, PuzzleData]>(
             50,
             (numCompleted, numTotal) => {
                 setProgress(`${numCompleted} of ${numTotal} puzzles loaded`)
@@ -168,9 +200,11 @@ export function useDataLoader(userId: string, userCookie: string, startDate: Dat
             //
             // Also handle a weird edge case for data where the puzzle is solved but 0% filled by always loading
             // data for solved puzzles.
+            const puzzleData = data.current[puzzleDate];
             if (
-                (data.current[puzzleDate].solved || data.current[puzzleDate].percent_filled !== 0) &&
-                data.current[puzzleDate].calcs === undefined
+                isResult(puzzleData) &&
+                (puzzleData.solved || puzzleData.percent_filled !== 0) &&
+                puzzleData.calcs === undefined
             ) {
                 puzzleRequestPool.addRequest(() => fetchPuzzle(puzzleDate));
             }
@@ -180,18 +214,25 @@ export function useDataLoader(userId: string, userCookie: string, startDate: Dat
         puzzleRequestPool.poll().then(results => {
             results.forEach(result => {
                 const [puzzleDate, solveData] = result;
-                data.current[puzzleDate].calcs = solveData.calcs;
-                data.current[puzzleDate].firsts = solveData.firsts;
+                const puzzleData = data.current[puzzleDate];
+                if (isResult(puzzleData)) {
+                    puzzleData.calcs = solveData.calcs;
+                    puzzleData.firsts = solveData.firsts;
+                }
             });
 
-            const processedData = Object.values(data.current).map(puzzleData => new Puzzle(puzzleData).blob());
+            const processedData = Object.values(data.current)
+                .filter(isResult)
+                .map(puzzleData => new Puzzle(puzzleData as LoadedPuzzleData).blob());
+
             setLoaded(true);
             setResult(processedData);
         });
     }
 
-    function fetchPuzzle(puzzleDate) {
-        const puzzleId = data.current[puzzleDate].puzzle_id;
+    function fetchPuzzle(puzzleDate: string): Promise<[string, PuzzleData]> {
+        const puzzleData = data.current[puzzleDate] as PuzzleData;
+        const puzzleId = puzzleData.puzzle_id;
         return window.fetch(
             interpolate(PUZZLE_URL, {
                 puzzleId: puzzleId,

@@ -6,11 +6,11 @@ const ARCHIVE_URL = "https://nyt-games-prd.appspot.com/svc/crosswords/v3/{userId
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const url = interpolate(ARCHIVE_URL, {
-        userId: searchParams.get("userId"),
-        startDate: searchParams.get("startDate"),
-        endDate: searchParams.get("endDate"),
+        userId: searchParams.get("userId") as string,
+        startDate: searchParams.get("startDate") as string,
+        endDate: searchParams.get("endDate") as string,
     });
-    const headers = { "nyt-s": searchParams.get("userCookie") };
+    const headers = { "nyt-s": searchParams.get("userCookie") as string };
     const response = await fetch(url, { headers: headers });
     const jsonResponse = await response.json();
 

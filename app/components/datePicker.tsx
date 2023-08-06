@@ -2,6 +2,7 @@ const DateRangeOptions = {
     "this_year": "This year",
     "last_year": "Last year",
     "last_3": "Last 3 months",
+    "last_12": "Last 12 months",
     "last_24": "Last 2 years",
     "last_60": "Last 5 years",
 }
