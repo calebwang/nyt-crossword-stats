@@ -20,6 +20,9 @@
 }
 
 .UserForm-instructions {}
+.UserForm-instructionList {
+    list-style: numeric inside;
+}
 .UserForm-instructionsHeader {
     font-size: 20px;
 }

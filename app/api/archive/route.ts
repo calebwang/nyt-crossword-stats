@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import { interpolate } from "app/utils/utils";
+import { NextResponse } from "next/server";
+import { interpolate } from "utils/utils";
 
 const ARCHIVE_URL = "https://nyt-games-prd.appspot.com/svc/crosswords/v3/{userId}/puzzles.json?publish_type=daily&sort_order=asc&sort_by=print_date&date_start={startDate}&date_end={endDate}";
 

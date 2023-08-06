@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { interpolate } from "app/utils/utils";
+import { interpolate } from "utils/utils";
 
 const GAME_URL = "https://nyt-games-prd.appspot.com/svc/crosswords/v6/game/{puzzleId}.json"
 

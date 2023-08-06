@@ -51,7 +51,7 @@ function UserForm() {
                 <div className="UserForm-instructionsHeader">
                     Instructions
                 </div>
-                <ol>
+                <ol className="UserForm-instructionList">
                     <li>
                         Log into&nbsp;
                         <a href={`https://myaccount.nytimes.com/seg`}>
@@ -64,9 +64,6 @@ function UserForm() {
                     </li>
                     <li>
                         Pick a time range and hit Submit!
-                    </li>
-                    <li>
-                        [Optional] Use React Dev Tools to edit configuration settings for the charts.
                     </li>
                 </ol>
             </div>
