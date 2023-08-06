@@ -1,10 +1,12 @@
 "use client";
 import "./page.css";
+
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { useState } from "react";
-import { DatePicker, DateRangeOption } from "app/components/datePicker";
+
+import { DatePicker, DateRangeOption } from "components/datePicker";
 
 
 export default function Home() {

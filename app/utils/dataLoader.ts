@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { localMidnightDateFromString, interpolate, monthsRange, monthStartAndEnd, formatDate, RequestPool } from "app/utils/utils";
+
+import { localMidnightDateFromString, interpolate, monthsRange, monthStartAndEnd, formatDate, RequestPool } from "utils/utils";
 
 type PuzzleData = {
     puzzle_id: string;
